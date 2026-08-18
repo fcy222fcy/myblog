@@ -18,6 +18,7 @@ import (
 	"blog/internal/repository"
 	"blog/internal/service"
 	"blog/pkg/config"
+	blogjwt "blog/pkg/jwt"
 	"blog/pkg/logger"
 	"strconv"
 
@@ -31,6 +32,9 @@ import (
 type Router struct {
 	engine *gin.Engine
 	config *config.Config
+
+	// JWT 实例（预创建，复用）
+	jwtInstance *blogjwt.JWT
 
 	// 各模块 controller
 	authController          *auth.Controller
@@ -78,9 +82,13 @@ func NewRouter(
 		v.RegisterValidation("datetime", request.ValidateDate)
 	}
 
+	// 预创建 JWT 实例，避免每次请求都创建
+	jwtInstance := blogjwt.NewJWT(config.JWT)
+
 	return &Router{
 		engine:                  engine,
 		config:                  config,
+		jwtInstance:             jwtInstance,
 		authController:          auth.NewController(authSvc),
 		userController:          user.NewController(userSvc),
 		articleController:       article.NewController(articleSvc),
@@ -105,31 +113,35 @@ func (r *Router) Setup() *gin.Engine {
 	// 全局中间件
 	r.engine.Use(middleware.Recovery())
 	r.engine.Use(middleware.Logger())
-	// 使用配置的 CORS 来源，如果没有配置则限制为同源
-	r.engine.Use(middleware.CORS("http://localhost:3000", "http://localhost:9090"))
+
+	// 使用配置的 CORS 来源（无配置时默认本地开发端口）
+	origins := r.config.Server.CORSOrigins
+	if len(origins) == 0 {
+		origins = []string{
+			"http://localhost:3000",
+			"http://localhost:9090",
+			"http://localhost:5173",
+			"http://localhost:5174",
+		}
+	}
+	r.engine.Use(middleware.CORS(origins...))
 
 	// API v1 路由组
 	apiV1 := r.engine.Group("/api/v1")
 
-	// 注入 JWT 配置到上下文，供各模块 Auth 中间件使用
-	apiV1.Use(func(c *gin.Context) {
-		c.Set("jwt_config", r.config.JWT)
-		c.Next()
-	})
-
 	// 审计日志中间件（仅记录 admin 写操作）
 	apiV1.Use(middleware.Audit(r.auditLogSvc))
 
-	// 注册各模块路由
-	auth.RegisterRoutes(apiV1, r.authController)
-	article.RegisterRoutes(apiV1, r.articleController)
-	category.RegisterRoutes(apiV1, r.categoryController)
-	tag.RegisterRoutes(apiV1, r.tagController)
-	comment.RegisterRoutes(apiV1, r.commentController)
-	daily_question.RegisterRoutes(apiV1, r.dailyQuestionController)
-	user.RegisterRoutes(apiV1, r.userController)
-	media.RegisterRoutes(apiV1, r.mediaController)
-	audit_log.RegisterRoutes(apiV1, r.auditLogController)
+	// 注册各模块路由（传入预创建的 JWT 实例）
+	auth.RegisterRoutes(apiV1, r.authController, r.jwtInstance)
+	article.RegisterRoutes(apiV1, r.articleController, r.jwtInstance)
+	category.RegisterRoutes(apiV1, r.categoryController, r.jwtInstance)
+	tag.RegisterRoutes(apiV1, r.tagController, r.jwtInstance)
+	comment.RegisterRoutes(apiV1, r.commentController, r.jwtInstance)
+	daily_question.RegisterRoutes(apiV1, r.dailyQuestionController, r.jwtInstance)
+	user.RegisterRoutes(apiV1, r.userController, r.jwtInstance)
+	media.RegisterRoutes(apiV1, r.mediaController, r.jwtInstance)
+	audit_log.RegisterRoutes(apiV1, r.auditLogController, r.jwtInstance)
 	rss.RegisterRoutes(apiV1, r.rssHandler)
 	sitemap.RegisterRoutes(apiV1, r.sitemapHandler)
 
@@ -149,7 +161,7 @@ func (r *Router) Setup() *gin.Engine {
 func (r *Router) registerDashboardRoutes(rg *gin.RouterGroup) {
 	// 需要登录的路由
 	protected := rg.Group("")
-	protected.Use(middleware.Auth())
+	protected.Use(middleware.Auth(r.jwtInstance))
 	{
 		dashboard := protected.Group("/admin/dashboard")
 		{
@@ -169,7 +181,7 @@ func (r *Router) registerAboutPageRoutes(rg *gin.RouterGroup) {
 
 	// 需要登录的路由
 	protected := rg.Group("")
-	protected.Use(middleware.Auth())
+	protected.Use(middleware.Auth(r.jwtInstance))
 	{
 		protected.PUT("/admin/about", r.aboutPageController.UpdateAboutPage)
 	}
@@ -187,6 +199,12 @@ func (r *Router) getDashboardStats(c *gin.Context) {
 	publishedCount, err := r.articleRepo.Count("published")
 	if err != nil {
 		logger.Warn("统计已发布文章数量失败", zap.Error(err))
+	}
+
+	// 统计定时发布文章数量
+	scheduledCount, err := r.articleRepo.Count("scheduled")
+	if err != nil {
+		logger.Warn("统计定时发布文章数量失败", zap.Error(err))
 	}
 
 	// 统计总浏览量
@@ -222,7 +240,8 @@ func (r *Router) getDashboardStats(c *gin.Context) {
 		"data": gin.H{
 			"article_count":   articleCount,
 			"published_count": publishedCount,
-			"draft_count":     articleCount - publishedCount,
+			"draft_count":     articleCount - publishedCount - scheduledCount,
+			"scheduled_count": scheduledCount,
 			"total_views":     totalViews,
 			"today_views":     todayViews,
 			"comment_count":   commentCount,

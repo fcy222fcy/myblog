@@ -4,15 +4,14 @@ import (
 	"net/http"
 	"strings"
 
-	"blog/pkg/config"
 	"blog/pkg/jwt"
 	"blog/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Auth JWT 认证中间件
-func Auth() gin.HandlerFunc {
+// Auth JWT 认证中间件（接收预创建的 JWT 实例）
+func Auth(jwtInstance *jwt.JWT) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从请求头获取 Token
 		authHeader := c.GetHeader("Authorization")
@@ -32,17 +31,7 @@ func Auth() gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		// 从上下文获取 JWT 配置
-		jwtConfig, exists := c.Get("jwt_config")
-		if !exists {
-			response.Unauthorized(c, "JWT 配置未初始化")
-			c.Abort()
-			return
-		}
-
-		// 解析 Token
-		jwtInstance := jwt.NewJWT(jwtConfig.(config.JWTConfig))
-
+		// 解析 Token（使用预创建的 JWT 实例）
 		claims, err := jwtInstance.ParseToken(tokenString)
 		if err != nil {
 			response.Unauthorized(c, "Token 无效或已过期")
@@ -75,7 +64,7 @@ func GetUsername(c *gin.Context) string {
 }
 
 // OptionalAuth 可选认证中间件：有 Token 则解析，无 Token 也放行
-func OptionalAuth() gin.HandlerFunc {
+func OptionalAuth(jwtInstance *jwt.JWT) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -91,14 +80,7 @@ func OptionalAuth() gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		jwtConfig, exists := c.Get("jwt_config")
-		if !exists {
-			c.Next()
-			return
-		}
-
-		jwtInstance := jwt.NewJWT(jwtConfig.(config.JWTConfig))
-
+		// 解析 Token（使用预创建的 JWT 实例）
 		claims, err := jwtInstance.ParseToken(tokenString)
 		if err != nil {
 			c.Next()
