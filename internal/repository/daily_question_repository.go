@@ -2,8 +2,10 @@ package repository
 
 import (
 	"blog/internal/model/entity"
+	bizerrors "blog/pkg/errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // dailyQuestionRepository 每日一问数据访问实现
@@ -59,9 +61,16 @@ func (r *dailyQuestionRepository) Update(question *entity.DailyQuestion) error {
 	return r.db.Save(question).Error
 }
 
-// Delete 删除问题（软删除）
+// Delete 删除问题（硬删除，清理点赞记录）
 func (r *dailyQuestionRepository) Delete(id uint) error {
-	return r.db.Delete(&entity.DailyQuestion{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 清理点赞记录
+		if err := tx.Where("question_id = ?", id).
+			Delete(&entity.DailyQuestionLikeLog{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&entity.DailyQuestion{}, id).Error
+	})
 }
 
 // List 问题列表（后台）
@@ -169,6 +178,42 @@ func (r *dailyQuestionRepository) IncrementLikeCount(id uint) (int64, error) {
 	return question.LikeCount, err
 }
 
+// LikeQuestionWithLog 点赞问题（事务 + IP 唯一约束防重复，并发安全）
+// 依赖 daily_question_like_logs 表的 (question_id, visitor_ip) 唯一索引：
+// 并发请求下只有一个能成功插入日志，其余被 OnConflict 忽略返回"已点赞"
+func (r *dailyQuestionRepository) LikeQuestionWithLog(questionID uint, visitorIP string) (int64, error) {
+	var likeCount int64
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 先插入点赞日志（唯一索引冲突时 DoNothing）
+		result := tx.Clauses(clause.OnConflict{DoNothing: true}).
+			Create(&entity.DailyQuestionLikeLog{
+				QuestionID: questionID,
+				VisitorIP:  visitorIP,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return bizerrors.New(bizerrors.CodeAlreadyLiked, "已经点过赞了")
+		}
+
+		// 2. 增加点赞数
+		if err := tx.Model(&entity.DailyQuestion{}).Where("id = ?", questionID).
+			UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error; err != nil {
+			return err
+		}
+
+		// 3. 返回最新点赞数
+		var question entity.DailyQuestion
+		if err := tx.Select("like_count").First(&question, questionID).Error; err != nil {
+			return err
+		}
+		likeCount = question.LikeCount
+		return nil
+	})
+	return likeCount, err
+}
+
 // BatchUpdateStatus 批量更新状态
 func (r *dailyQuestionRepository) BatchUpdateStatus(ids []uint, status int) error {
 	return r.db.Model(&entity.DailyQuestion{}).Where("id IN ?", ids).
@@ -187,5 +232,13 @@ func (r *dailyQuestionRepository) PublishScheduledQuestions(today string) (int64
 }
 
 func (r *dailyQuestionRepository) BatchDelete(ids []uint) error {
-	return r.db.Delete(&entity.DailyQuestion{}, ids).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 清理点赞记录
+		if err := tx.Where("question_id IN ?", ids).
+			Delete(&entity.DailyQuestionLikeLog{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id IN ?", ids).
+			Delete(&entity.DailyQuestion{}).Error
+	})
 }

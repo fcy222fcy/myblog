@@ -13,7 +13,7 @@ type CommentRepository interface {
 	// Update 更新评论
 	Update(comment *entity.Comment) error
 
-	// Delete 删除评论（软删除）
+	// Delete 删除评论（硬删除，级联清理子评论和点赞记录）
 	Delete(id uint) error
 
 	// ListByArticleID 根据文章ID获取评论列表，sortBy: asc/desc/hot
@@ -48,4 +48,10 @@ type CommentRepository interface {
 
 	// DeleteLikeLog 删除点赞记录
 	DeleteLikeLog(commentID uint, visitorIP string) error
+
+	// LikeWithLog 点赞评论（事务 + IP 唯一约束防重复）
+	LikeWithLog(commentID uint, visitorIP string) error
+
+	// UnlikeWithLog 取消点赞评论（事务）
+	UnlikeWithLog(commentID uint, visitorIP string) error
 }

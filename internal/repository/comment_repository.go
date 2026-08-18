@@ -2,10 +2,12 @@ package repository
 
 import (
 	"blog/internal/model/entity"
+	bizerrors "blog/pkg/errors"
 	"sort"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // commentRepository 评论数据访问实现
@@ -41,9 +43,33 @@ func (r *commentRepository) Update(comment *entity.Comment) error {
 	return r.db.Save(comment).Error
 }
 
-// Delete 删除评论（软删除）
+// Delete 删除评论（硬删除，级联清理子评论和点赞记录）
 func (r *commentRepository) Delete(id uint) error {
-	return r.db.Delete(&entity.Comment{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 递归收集所有子评论 ID（按 parent_id 向下查找）
+		allIDs := []uint{id}
+		currentIDs := []uint{id}
+		for len(currentIDs) > 0 {
+			var children []uint
+			if err := tx.Model(&entity.Comment{}).
+				Where("parent_id IN ?", currentIDs).
+				Pluck("id", &children).Error; err != nil {
+				return err
+			}
+			allIDs = append(allIDs, children...)
+			currentIDs = children
+		}
+
+		// 删除所有相关评论的点赞记录
+		if err := tx.Where("comment_id IN ?", allIDs).
+			Delete(&entity.CommentLikeLog{}).Error; err != nil {
+			return err
+		}
+
+		// 删除评论及其子评论
+		return tx.Where("id IN ?", allIDs).
+			Delete(&entity.Comment{}).Error
+	})
 }
 
 // calcReplyCount 计算评论的总回复数（包括所有嵌套层级的回复）
@@ -259,9 +285,34 @@ func (r *commentRepository) BatchUpdateStatus(ids []uint, status string) error {
 		Update("status", status).Error
 }
 
-// BatchDelete 批量删除
+// BatchDelete 批量删除评论（硬删除，清理点赞记录）
 func (r *commentRepository) BatchDelete(ids []uint) error {
-	return r.db.Delete(&entity.Comment{}, ids).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 递归收集所有子评论 ID
+		allIDs := make([]uint, len(ids))
+		copy(allIDs, ids)
+		currentIDs := make([]uint, len(ids))
+		copy(currentIDs, ids)
+		for len(currentIDs) > 0 {
+			var children []uint
+			if err := tx.Model(&entity.Comment{}).
+				Where("parent_id IN ?", currentIDs).
+				Pluck("id", &children).Error; err != nil {
+				return err
+			}
+			allIDs = append(allIDs, children...)
+			currentIDs = children
+		}
+
+		// 删除点赞记录
+		if err := tx.Where("comment_id IN ?", allIDs).
+			Delete(&entity.CommentLikeLog{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Where("id IN ?", allIDs).
+			Delete(&entity.Comment{}).Error
+	})
 }
 
 // IncrementLikeCount 增加评论点赞数
@@ -299,4 +350,48 @@ func (r *commentRepository) DeleteLikeLog(commentID uint, visitorIP string) erro
 	return r.db.Where("comment_id = ? AND visitor_ip = ?", commentID, visitorIP).
 		Delete(&entity.CommentLikeLog{}).
 		Error
+}
+
+// LikeWithLog 点赞评论（事务 + IP 唯一约束防重复，并发安全）
+// 依赖 comment_like_logs 表的 (comment_id, visitor_ip) 唯一索引：
+// 并发请求下只有一个能成功插入日志，其余被 OnConflict 忽略返回"已点赞"
+func (r *commentRepository) LikeWithLog(commentID uint, visitorIP string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 先插入点赞日志（唯一索引冲突时 DoNothing）
+		result := tx.Clauses(clause.OnConflict{DoNothing: true}).
+			Create(&entity.CommentLikeLog{
+				CommentID: commentID,
+				VisitorIP: visitorIP,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return bizerrors.New(bizerrors.CodeCommentAlreadyLiked, bizerrors.GetMessage(bizerrors.CodeCommentAlreadyLiked))
+		}
+
+		// 2. 增加点赞数
+		return tx.Model(&entity.Comment{}).Where("id = ?", commentID).
+			UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error
+	})
+}
+
+// UnlikeWithLog 取消点赞评论（事务，幂等安全）
+func (r *commentRepository) UnlikeWithLog(commentID uint, visitorIP string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 删除点赞日志
+		result := tx.Where("comment_id = ? AND visitor_ip = ?", commentID, visitorIP).
+			Delete(&entity.CommentLikeLog{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return bizerrors.New(bizerrors.CodeCommentNotLiked, bizerrors.GetMessage(bizerrors.CodeCommentNotLiked))
+		}
+
+		// 2. 减少点赞数（下限保护）
+		return tx.Model(&entity.Comment{}).
+			Where("id = ? AND like_count > 0", commentID).
+			UpdateColumn("like_count", gorm.Expr("like_count - 1")).Error
+	})
 }

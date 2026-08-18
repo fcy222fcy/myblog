@@ -65,9 +65,15 @@ func (r *tagRepository) Update(tag *entity.Tag) error {
 	return r.db.Save(tag).Error
 }
 
-// Delete 删除标签（软删除）
+// Delete 删除标签（硬删除，清理 article_tags 关联行）
 func (r *tagRepository) Delete(id uint) error {
-	return r.db.Delete(&entity.Tag{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 清理文章-标签关联
+		if err := tx.Where("tag_id = ?", id).Delete(&entity.ArticleTag{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&entity.Tag{}, id).Error
+	})
 }
 
 // List 标签列表

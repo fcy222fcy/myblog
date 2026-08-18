@@ -84,6 +84,16 @@ func (m *mockArticleRepository) IncrementViewCount(id uint) error {
 	return nil
 }
 
+func (m *mockArticleRepository) UpdateCommentCount(articleID uint, delta int64) error {
+	if article, ok := m.articles[articleID]; ok {
+		article.CommentCount += delta
+		if article.CommentCount < 0 {
+			article.CommentCount = 0
+		}
+	}
+	return nil
+}
+
 func (m *mockArticleRepository) BatchDelete(ids []uint) error {
 	for _, id := range ids {
 		delete(m.articles, id)

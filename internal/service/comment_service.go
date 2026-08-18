@@ -276,7 +276,15 @@ func (s *commentService) CreateComment(req *request.CreateCommentRequest, userID
 		return 0, fmt.Errorf("创建评论失败, %w", err)
 	}
 
-	go s.sendEmailNotifications(comment, article)
+	// 同步文章评论数（新评论默认 approved）
+	if err := s.articleRepo.UpdateCommentCount(article.ID, 1); err != nil {
+		logger.Warnf("更新文章评论数失败, articleID: %d, err: %v", article.ID, err)
+	}
+
+	go func() {
+		defer func() { _ = recover() }()
+		s.sendEmailNotifications(comment, article)
+	}()
 
 	return comment.ID, nil
 }
@@ -367,9 +375,25 @@ func (s *commentService) UpdateCommentStatus(id uint, status string) error {
 		return bizerrors.New(bizerrors.CodeCommentNotFound, bizerrors.GetMessage(bizerrors.CodeCommentNotFound))
 	}
 
+	oldStatus := comment.Status
 	comment.Status = status
 	if err := s.commentRepo.Update(comment); err != nil {
 		return fmt.Errorf("更新评论状态失败, %w", err)
+	}
+
+	// 同步文章评论数：仅统计 approved 评论
+	if oldStatus != status {
+		var delta int64
+		if status == "approved" && oldStatus != "approved" {
+			delta = 1
+		} else if oldStatus == "approved" && status != "approved" {
+			delta = -1
+		}
+		if delta != 0 {
+			if err := s.articleRepo.UpdateCommentCount(comment.ArticleID, delta); err != nil {
+				logger.Warnf("更新文章评论数失败, articleID: %d, err: %v", comment.ArticleID, err)
+			}
+		}
 	}
 	return nil
 }
@@ -387,18 +411,50 @@ func (s *commentService) DeleteComment(id uint) error {
 	if err := s.commentRepo.Delete(id); err != nil {
 		return fmt.Errorf("删除评论失败, %w", err)
 	}
+
+	// 同步文章评论数（仅 approved 评论计入）
+	if comment.Status == "approved" {
+		if err := s.articleRepo.UpdateCommentCount(comment.ArticleID, -1); err != nil {
+			logger.Warnf("更新文章评论数失败, articleID: %d, err: %v", comment.ArticleID, err)
+		}
+	}
 	return nil
 }
 
 // BatchDeleteComments 批量删除评论
 func (s *commentService) BatchDeleteComments(ids []uint) error {
+	// 先查询待删评论，用于同步文章评论数
+	var commentsToDelete []*entity.Comment
+	for _, id := range ids {
+		comment, err := s.commentRepo.FindByID(id)
+		if err != nil {
+			return fmt.Errorf("查询评论失败, %w", err)
+		}
+		if comment != nil {
+			commentsToDelete = append(commentsToDelete, comment)
+		}
+	}
+
 	if err := s.commentRepo.BatchDelete(ids); err != nil {
 		return fmt.Errorf("批量删除评论失败, %w", err)
+	}
+
+	// 按文章分组统计减少的 approved 评论数
+	deltaByArticle := make(map[uint]int64)
+	for _, c := range commentsToDelete {
+		if c.Status == "approved" {
+			deltaByArticle[c.ArticleID]++
+		}
+	}
+	for articleID, delta := range deltaByArticle {
+		if err := s.articleRepo.UpdateCommentCount(articleID, -delta); err != nil {
+			logger.Warnf("更新文章评论数失败, articleID: %d, err: %v", articleID, err)
+		}
 	}
 	return nil
 }
 
-// LikeComment 点赞评论（防重复）
+// LikeComment 点赞评论（事务 + 唯一约束防重复）
 func (s *commentService) LikeComment(commentID uint, visitorIP string) error {
 	// 检查评论是否存在
 	comment, err := s.commentRepo.FindByID(commentID)
@@ -409,33 +465,11 @@ func (s *commentService) LikeComment(commentID uint, visitorIP string) error {
 		return bizerrors.New(bizerrors.CodeCommentNotFound, bizerrors.GetMessage(bizerrors.CodeCommentNotFound))
 	}
 
-	// 检查是否已点赞（防重复）
-	hasLiked, err := s.commentRepo.HasLiked(commentID, visitorIP)
-	if err != nil {
-		return fmt.Errorf("查询点赞记录失败, %w", err)
-	}
-	if hasLiked {
-		return bizerrors.New(bizerrors.CodeCommentAlreadyLiked, bizerrors.GetMessage(bizerrors.CodeCommentAlreadyLiked))
-	}
-
-	// 增加点赞数
-	if err := s.commentRepo.IncrementLikeCount(commentID); err != nil {
-		return fmt.Errorf("增加点赞数失败, %w", err)
-	}
-
-	// 记录点赞日志
-	likeLog := &entity.CommentLikeLog{
-		CommentID: commentID,
-		VisitorIP: visitorIP,
-	}
-	if err := s.commentRepo.CreateLikeLog(likeLog); err != nil {
-		return fmt.Errorf("记录点赞日志失败, %w", err)
-	}
-
-	return nil
+	// 事务：插入点赞日志（防重复）+ 增加点赞数
+	return s.commentRepo.LikeWithLog(commentID, visitorIP)
 }
 
-// UnlikeComment 取消点赞评论
+// UnlikeComment 取消点赞评论（事务）
 func (s *commentService) UnlikeComment(commentID uint, visitorIP string) error {
 	// 检查评论是否存在
 	comment, err := s.commentRepo.FindByID(commentID)
@@ -446,24 +480,6 @@ func (s *commentService) UnlikeComment(commentID uint, visitorIP string) error {
 		return bizerrors.New(bizerrors.CodeCommentNotFound, bizerrors.GetMessage(bizerrors.CodeCommentNotFound))
 	}
 
-	// 检查是否已点赞（未点赞则无法取消）
-	hasLiked, err := s.commentRepo.HasLiked(commentID, visitorIP)
-	if err != nil {
-		return fmt.Errorf("查询点赞记录失败, %w", err)
-	}
-	if !hasLiked {
-		return bizerrors.New(bizerrors.CodeCommentNotLiked, bizerrors.GetMessage(bizerrors.CodeCommentNotLiked))
-	}
-
-	// 减少点赞数
-	if err := s.commentRepo.DecrementLikeCount(commentID); err != nil {
-		return fmt.Errorf("减少点赞数失败, %w", err)
-	}
-
-	// 删除点赞日志
-	if err := s.commentRepo.DeleteLikeLog(commentID, visitorIP); err != nil {
-		return fmt.Errorf("删除点赞日志失败, %w", err)
-	}
-
-	return nil
+	// 事务：删除点赞日志 + 减少点赞数
+	return s.commentRepo.UnlikeWithLog(commentID, visitorIP)
 }

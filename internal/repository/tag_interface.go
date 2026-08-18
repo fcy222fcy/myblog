@@ -19,7 +19,7 @@ type TagRepository interface {
 	// Update 更新标签
 	Update(tag *entity.Tag) error
 
-	// Delete 删除标签（软删除）
+	// Delete 删除标签（硬删除，清理关联）
 	Delete(id uint) error
 
 	// List 标签列表

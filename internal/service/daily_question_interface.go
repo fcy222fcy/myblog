@@ -22,8 +22,8 @@ type DailyQuestionService interface {
 	// GetNextQuestion 获取后一天的问题
 	GetNextQuestion(date string) (*response.DailyQuestionResponse, error)
 
-	// LikeQuestion 问题点赞
-	LikeQuestion(id uint) (int64, error)
+	// LikeQuestion 问题点赞（按 IP 防重复）
+	LikeQuestion(id uint, visitorIP string) (int64, error)
 
 	// GetAdminQuestionList 获取问题列表（后台）
 	GetAdminQuestionList(req *request.DailyQuestionListRequest) (*response.PageResponse, error)

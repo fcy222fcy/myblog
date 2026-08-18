@@ -22,7 +22,7 @@ type UserRepository interface {
 	// Update 更新用户
 	Update(user *entity.User) error
 
-	// Delete 删除用户（软删除）
+	// Delete 删除用户（硬删除）
 	Delete(id uint) error
 
 	// List 用户列表

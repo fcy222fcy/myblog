@@ -54,6 +54,7 @@ func (d *Database) AutoMigrate() error {
 		&entity.Comment{},
 		&entity.CommentLikeLog{},
 		&entity.DailyQuestion{},
+		&entity.DailyQuestionLikeLog{},
 		&entity.Media{},
 		&entity.AboutPage{},
 		&entity.VisitLog{},

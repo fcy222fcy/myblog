@@ -19,7 +19,7 @@ type DailyQuestionRepository interface {
 	// Update 更新问题
 	Update(question *entity.DailyQuestion) error
 
-	// Delete 删除问题（软删除）
+	// Delete 删除问题（硬删除，清理点赞记录）
 	Delete(id uint) error
 
 	// List 问题列表（后台）
@@ -48,6 +48,9 @@ type DailyQuestionRepository interface {
 
 	// IncrementLikeCount 增加点赞数
 	IncrementLikeCount(id uint) (int64, error)
+
+	// LikeQuestionWithLog 点赞问题（事务 + IP 唯一约束防重复）
+	LikeQuestionWithLog(questionID uint, visitorIP string) (int64, error)
 
 	// BatchUpdateStatus 批量更新状态
 	BatchUpdateStatus(ids []uint, status int) error

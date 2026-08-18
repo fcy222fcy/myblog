@@ -65,7 +65,7 @@ func (r *categoryRepository) Update(category *entity.Category) error {
 	return r.db.Save(category).Error
 }
 
-// Delete 删除分类（软删除）
+// Delete 删除分类（硬删除）
 func (r *categoryRepository) Delete(id uint) error {
 	return r.db.Delete(&entity.Category{}, id).Error
 }

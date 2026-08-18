@@ -79,7 +79,7 @@ func (r *userRepository) Update(user *entity.User) error {
 	return r.db.Save(user).Error
 }
 
-// Delete 删除用户（软删除）
+// Delete 删除用户（硬删除）
 func (r *userRepository) Delete(id uint) error {
 	return r.db.Delete(&entity.User{}, id).Error
 }

@@ -93,11 +93,11 @@ func (s *dailyQuestionService) GetNextQuestion(date string) (*response.DailyQues
 	return s.toResponse(question), nil
 }
 
-// LikeQuestion 问题点赞
-func (s *dailyQuestionService) LikeQuestion(id uint) (int64, error) {
-	count, err := s.dailyQuestionRepo.IncrementLikeCount(id)
+// LikeQuestion 问题点赞（按 IP 防重复）
+func (s *dailyQuestionService) LikeQuestion(id uint, visitorIP string) (int64, error) {
+	count, err := s.dailyQuestionRepo.LikeQuestionWithLog(id, visitorIP)
 	if err != nil {
-		return 0, fmt.Errorf("问题点赞失败, %w", err)
+		return 0, err
 	}
 	logger.Infof("问题点赞成功, id: %d, likeCount: %d", id, count)
 	return count, nil

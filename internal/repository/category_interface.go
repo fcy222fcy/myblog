@@ -19,7 +19,7 @@ type CategoryRepository interface {
 	// Update 更新分类
 	Update(category *entity.Category) error
 
-	// Delete 删除分类（软删除）
+	// Delete 删除分类（硬删除）
 	Delete(id uint) error
 
 	// List 分类列表

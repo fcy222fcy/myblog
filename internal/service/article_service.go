@@ -140,7 +140,10 @@ func (s *articleService) GetArticleList(req *request.ArticleListRequest) (*respo
 	if s.redisClient != nil {
 		cacheKey := fmt.Sprintf("article:list:%d:%d:%d:%d:%s",
 			req.Page, req.GetPageSize(), req.Category, req.Tag, req.Keyword)
-		go s.redisClient.SetJSON(context.Background(), cacheKey, pageResp, 5*time.Minute)
+		go func() {
+			defer func() { _ = recover() }()
+			_ = s.redisClient.SetJSON(context.Background(), cacheKey, pageResp, 5*time.Minute)
+		}()
 	}
 
 	return pageResp, nil
@@ -218,7 +221,10 @@ func (s *articleService) GetArticleDetail(slug string, clientIP string) (*respon
 
 	if s.redisClient != nil {
 		cacheKey := fmt.Sprintf("article:detail:%s", slug)
-		go s.redisClient.SetJSON(context.Background(), cacheKey, detail, 10*time.Minute)
+		go func() {
+			defer func() { _ = recover() }()
+			_ = s.redisClient.SetJSON(context.Background(), cacheKey, detail, 10*time.Minute)
+		}()
 	}
 
 	return detail, nil
@@ -238,7 +244,15 @@ func (s *articleService) invalidateArticleCache(slug string) {
 		"tag:list",
 		"article:archives",
 	)
-	go s.redisClient.Del(ctx, keys...)
+	go func() {
+		defer func() { _ = recover() }()
+		_ = s.redisClient.Del(ctx, keys...)
+	}()
+	// 文章内容变化也会影响列表摘要/搜索展示，列表缓存一并失效
+	go func() {
+		defer func() { _ = recover() }()
+		_ = s.redisClient.DelByPattern(ctx, "article:list:*")
+	}()
 }
 
 func (s *articleService) invalidateAllArticleListCache() {
@@ -251,9 +265,15 @@ func (s *articleService) invalidateAllArticleListCache() {
 		"tag:list",
 		"article:archives",
 	}
-	go s.redisClient.Del(ctx, keys...)
+	go func() {
+		defer func() { _ = recover() }()
+		_ = s.redisClient.Del(ctx, keys...)
+	}()
 	// 清除文章列表分页缓存（article:list:*）
-	go s.redisClient.DelByPattern(ctx, "article:list:*")
+	go func() {
+		defer func() { _ = recover() }()
+		_ = s.redisClient.DelByPattern(ctx, "article:list:*")
+	}()
 }
 
 func (s *articleService) refreshArticleSchedule(article *entity.Article) {
@@ -290,8 +310,8 @@ func (s *articleService) incrementViewCountAsync(articleID uint, clientIP string
 
 // GetArticleArchives 获取文章归档
 func (s *articleService) GetArticleArchives() ([]response.ArchiveResponse, error) {
-	// 获取所有已发布文章，按创建时间降序排序
-	articles, _, err := s.articleRepo.ListPublished(0, 1000, 0, 0, "")
+	// 获取所有已发布文章，按创建时间降序排序（大上限避免归档遗漏）
+	articles, _, err := s.articleRepo.ListPublished(0, 100000, 0, 0, "")
 	if err != nil {
 		return nil, fmt.Errorf("获取文章归档失败, %w", err)
 	}

@@ -56,9 +56,40 @@ func (r *articleRepository) Update(article *entity.Article) error {
 	return r.db.Save(article).Error
 }
 
-// Delete 删除文章（软删除）
+// Delete 删除文章（硬删除，级联清理评论、点赞记录、标签关联）
 func (r *articleRepository) Delete(id uint) error {
-	return r.db.Delete(&entity.Article{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 查询该文章的所有评论 ID
+		var commentIDs []uint
+		if err := tx.Model(&entity.Comment{}).
+			Where("article_id = ?", id).
+			Pluck("id", &commentIDs).Error; err != nil {
+			return err
+		}
+
+		// 删除评论点赞记录
+		if len(commentIDs) > 0 {
+			if err := tx.Where("comment_id IN ?", commentIDs).
+				Delete(&entity.CommentLikeLog{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 删除评论
+		if err := tx.Where("article_id = ?", id).
+			Delete(&entity.Comment{}).Error; err != nil {
+			return err
+		}
+
+		// 清理文章-标签关联
+		if err := tx.Where("article_id = ?", id).
+			Delete(&entity.ArticleTag{}).Error; err != nil {
+			return err
+		}
+
+		// 删除文章
+		return tx.Delete(&entity.Article{}, id).Error
+	})
 }
 
 // ListPublished 已发布文章列表（前台）
@@ -132,9 +163,29 @@ func (r *articleRepository) IncrementViewCount(id uint) error {
 		UpdateColumn("view_count", gorm.Expr("view_count + 1")).Error
 }
 
-// BatchDelete 批量删除
+// UpdateCommentCount 调整文章评论数（delta 为增量，可为负数，带下限保护）
+func (r *articleRepository) UpdateCommentCount(articleID uint, delta int64) error {
+	if delta == 0 {
+		return nil
+	}
+	if delta > 0 {
+		return r.db.Model(&entity.Article{}).Where("id = ?", articleID).
+			UpdateColumn("comment_count", gorm.Expr("comment_count + ?", delta)).Error
+	}
+	abs := -delta
+	return r.db.Model(&entity.Article{}).Where("id = ?", articleID).
+		UpdateColumn("comment_count",
+			gorm.Expr("CASE WHEN comment_count >= ? THEN comment_count - ? ELSE comment_count END", abs, abs)).Error
+}
+
+// BatchDelete 批量删除（逐个处理级联清理）
 func (r *articleRepository) BatchDelete(ids []uint) error {
-	return r.db.Delete(&entity.Article{}, ids).Error
+	for _, id := range ids {
+		if err := r.Delete(id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Count 统计文章数量
@@ -304,7 +355,7 @@ func (r *articleRepository) Search(keyword string, offset, limit int) ([]*entity
 		Where("a.status = ?", "published").
 		Where("("+whereCondition+") OR a.id IN (?)", mainWhere...).
 		Group("a.id").
-		Select("a.*, "+relevanceScore+" AS relevance_score")
+		Select("a.*, " + relevanceScore + " AS relevance_score")
 
 	// COUNT 查询（不带排序和分页）
 	countQuery := r.db.Model(&entity.Article{}).

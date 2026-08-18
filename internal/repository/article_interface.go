@@ -21,7 +21,7 @@ type ArticleRepository interface {
 	// Update 更新文章
 	Update(article *entity.Article) error
 
-	// Delete 删除文章（软删除）
+	// Delete 删除文章（硬删除，级联清理评论和标签关联）
 	Delete(id uint) error
 
 	// ListPublished 已发布文章列表（前台）
@@ -32,6 +32,9 @@ type ArticleRepository interface {
 
 	// IncrementViewCount 增加浏览量
 	IncrementViewCount(id uint) error
+
+	// UpdateCommentCount 调整文章评论数（delta 为增量，可为负数）
+	UpdateCommentCount(articleID uint, delta int64) error
 
 	// BatchDelete 批量删除
 	BatchDelete(ids []uint) error
