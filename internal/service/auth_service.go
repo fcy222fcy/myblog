@@ -16,16 +16,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// validateInput 验证输入是否包含危险字符
+// validateInput 校验输入（仅做基础长度限制）
+// 注：SQL 注入已由 GORM 参数化查询防护，这里不再使用黑名单拦截（黑名单会误伤合法输入）
 func validateInput(input string) bool {
-	dangerous := []string{"'", "--", "#", ";", "/*", "*/", "UNION", "SELECT", "DROP", "DELETE", "INSERT", "UPDATE", "OR ", "AND "}
-	upper := strings.ToUpper(input)
-	for _, d := range dangerous {
-		if strings.Contains(upper, d) {
-			return false
-		}
-	}
-	return true
+	return len(strings.TrimSpace(input)) <= 200
 }
 
 // authService 认证服务实现
@@ -360,11 +354,12 @@ func (s *authService) Register(req *request.RegisterRequest) error {
 		}
 	} else {
 		// 用户显式指定 username：长度约束+若冲突直接报错
-		if len(username) < 3 {
+		if len([]rune(username)) < 3 {
 			return bizerrors.New(bizerrors.CodeUsernameTooShort, bizerrors.GetMessage(bizerrors.CodeUsernameTooShort))
 		}
-		if len(username) > 50 {
-			username = username[:50]
+		if r := []rune(username); len(r) > 50 {
+			// rune 安全截断，避免按字节截断产生乱码
+			username = string(r[:50])
 		}
 		existingByName, err := s.userRepo.FindByUsername(username)
 		if err != nil {
