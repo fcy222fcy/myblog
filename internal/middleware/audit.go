@@ -13,6 +13,43 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// sensitiveKeys 需要脱敏的请求体字段（小写匹配）
+var sensitiveKeys = map[string]bool{
+	"password":      true,
+	"old_password":  true,
+	"new_password":  true,
+	"token":         true,
+	"authorization": true,
+	"secret":        true,
+	"api_key":       true,
+	"apikey":        true,
+	"access_token":  true,
+	"refresh_token": true,
+}
+
+// sanitizeBody 脱敏请求体中的敏感字段，防止明文密码/令牌落库
+func sanitizeBody(bodyBytes []byte) []byte {
+	var body map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &body); err != nil {
+		return bodyBytes
+	}
+	changed := false
+	for key := range body {
+		if sensitiveKeys[strings.ToLower(strings.TrimSpace(key))] {
+			body[key] = "***"
+			changed = true
+		}
+	}
+	if !changed {
+		return bodyBytes
+	}
+	sanitized, err := json.Marshal(body)
+	if err != nil {
+		return bodyBytes
+	}
+	return sanitized
+}
+
 // Audit 审计日志中间件
 // 自动记录所有 POST/PUT/DELETE 操作的审计日志
 func Audit(auditLogSvc service.AuditLogService) gin.HandlerFunc {
@@ -65,19 +102,22 @@ func Audit(auditLogSvc service.AuditLogService) gin.HandlerFunc {
 				targetID = extractIDFromResponse(c)
 			}
 
-			detail := truncateStr(string(bodyBytes), 500)
-			// 异步写入，不阻塞主流程
-			go auditLogSvc.Create(
-				operatorID,
-				operatorName,
-				action,
-				targetType,
-				targetID,
-				targetTitle,
-				detail,
-				ip,
-				userAgent,
-			)
+			detail := truncateStr(string(sanitizeBody(bodyBytes)), 500)
+			// 异步写入，不阻塞主流程（defer recover 防止 goroutine panic 拖垮进程）
+			go func() {
+				defer func() { _ = recover() }()
+				auditLogSvc.Create(
+					operatorID,
+					operatorName,
+					action,
+					targetType,
+					targetID,
+					targetTitle,
+					detail,
+					ip,
+					userAgent,
+				)
+			}()
 		}
 	}
 }
