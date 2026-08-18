@@ -133,7 +133,7 @@ func (c *Controller) LikeQuestion(ctx *gin.Context) {
 		return
 	}
 
-	likeCount, err := c.dailyQSvc.LikeQuestion(uint(id))
+	likeCount, err := c.dailyQSvc.LikeQuestion(uint(id), ctx.ClientIP())
 	if err != nil {
 		if bizerrors.IsBizError(err) {
 			logger.Warn("问题点赞业务错误", zap.Error(err))

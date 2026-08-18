@@ -31,7 +31,8 @@ type AppConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port int `mapstructure:"port"`
+	Port        int      `mapstructure:"port"`
+	CORSOrigins []string `mapstructure:"cors_origins"` // 允许的跨域来源，逗号分隔
 }
 
 // MySQLConfig 数据库配置
@@ -106,6 +107,12 @@ func Load() (*Config, error) {
 	viper.SetDefault("app.init_sql_dir", "")
 	viper.SetDefault("app.upload_dir", "uploads")
 	viper.SetDefault("server.port", 9090)
+	viper.SetDefault("server.cors_origins", []string{
+		"http://localhost:3000",
+		"http://localhost:9090",
+		"http://localhost:5173",
+		"http://localhost:5174",
+	})
 
 	// 读取环境变量
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -129,6 +136,12 @@ func Load() (*Config, error) {
 
 func applyEnvOverrides(config *Config) {
 	overrideInt(&config.Server.Port, "SERVER_PORT", "BACKEND_PORT")
+	// CORS 来源：CORS_ORIGINS 逗号分隔
+	if value, ok := firstEnv("CORS_ORIGINS"); ok {
+		if origins := parseCSV(value); len(origins) > 0 {
+			config.Server.CORSOrigins = origins
+		}
+	}
 
 	overrideString(&config.MySQL.Host, "DB_HOST", "MYSQL_HOST")
 	overrideInt(&config.MySQL.Port, "DB_PORT", "MYSQL_PORT")
@@ -252,4 +265,16 @@ func firstEnv(names ...string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// parseCSV 解析逗号分隔的配置值，去除空白与空项
+func parseCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			result = append(result, t)
+		}
+	}
+	return result
 }
