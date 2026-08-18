@@ -100,3 +100,6 @@ uploads/
 
 # WorkBuddy / Trae
 .workbuddy/
+
+# Local Git worktrees
+.worktrees/
