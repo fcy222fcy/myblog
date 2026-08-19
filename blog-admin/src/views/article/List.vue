@@ -27,9 +27,9 @@
         <div class="filter-group">
           <div class="search-box">
             <span class="search-box-icon">⌕</span>
-            <input type="text" v-model="keyword" placeholder="搜索文章..." @input="loadArticles">
+            <input type="text" v-model="keyword" placeholder="搜索文章..." @input="onKeywordInput">
           </div>
-          <CustomSelect class="category-select" v-model="categoryFilter" :options="categoryOptions" @change="loadArticles" />
+          <CustomSelect class="category-select" v-model="categoryFilter" :options="categoryOptions" @change="onCategoryChange" />
           <div class="custom-select-wrapper" v-click-outside="closeStatusDropdown">
             <div class="custom-select" @click="toggleStatusDropdown">
               <span class="select-value">{{ selectedStatusLabel }}</span>
@@ -113,6 +113,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getArticleList, deleteArticle } from '../../api/article'
+import request from '../../api/request'
 import { getCategoryList } from '../../api/category'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import SkeletonLoader from '../../components/common/SkeletonLoader.vue'
@@ -128,6 +129,7 @@ const keyword = ref('')
 const categoryFilter = ref('')
 const statusFilter = ref('')
 const stats = ref({ published: 0, draft: 0, totalViews: 0 })
+let keywordTimer
 
 const categoryOptions = computed(() => {
   return [{ value: '', label: '全部分类' }, ...categories.value.map(c => ({ value: c.id, label: c.name }))]
@@ -155,21 +157,29 @@ const selectStatus = (value) => {
   loadArticles()
 }
 
+const onCategoryChange = () => { page.value = 1; loadArticles() }
+const onKeywordInput = () => {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => { page.value = 1; loadArticles() }, 250)
+}
+
 const formatDate = (d) => d ? d.split('T')[0] : ''
 const statusLabel = (s) => ({ published: '已发布', draft: '草稿', scheduled: '定时发布' }[s] || s)
 
 const loadStats = async () => {
   try {
-    const [allRes, publishedRes, draftRes, scheduledRes] = await Promise.all([
+    const [allRes, publishedRes, draftRes, scheduledRes, dashboardRes] = await Promise.all([
       getArticleList({ page: 1, page_size: 1 }),
       getArticleList({ page: 1, page_size: 1, status: 'published' }),
       getArticleList({ page: 1, page_size: 1, status: 'draft' }),
-      getArticleList({ page: 1, page_size: 1, status: 'scheduled' })
+      getArticleList({ page: 1, page_size: 1, status: 'scheduled' }),
+      request.get('/admin/dashboard/stats')
     ])
     allTotal.value = allRes.data?.total || 0
     stats.value.published = publishedRes.data?.total || 0
     stats.value.draft = draftRes.data?.total || 0
     stats.value.scheduled = scheduledRes.data?.total || 0
+    stats.value.totalViews = dashboardRes.data?.total_views || 0
   } catch (e) { console.error(e) }
 }
 
@@ -182,7 +192,6 @@ const loadArticles = async () => {
     const res = await getArticleList(params)
     articles.value = res.data?.list || []
     total.value = res.data?.total || 0
-    stats.value.totalViews = articles.value.reduce((sum, a) => sum + (a.view_count || 0), 0)
   } catch (e) { console.error(e) }
 }
 

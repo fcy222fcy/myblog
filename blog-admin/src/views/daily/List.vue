@@ -3,18 +3,18 @@
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">问题总数</div>
-        <div class="stat-value">{{ questions.length }}</div>
+        <div class="stat-value">{{ total }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">显示问题</div>
+        <div class="stat-label">当前页已发布</div>
         <div class="stat-value">{{ questions.filter(q => q.status === 1).length }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">总浏览量</div>
+        <div class="stat-label">当前页浏览量</div>
         <div class="stat-value">{{ questions.reduce((s, q) => s + (q.view_count || 0), 0) }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">总点赞数</div>
+        <div class="stat-label">当前页点赞数</div>
         <div class="stat-value">{{ questions.reduce((s, q) => s + (q.like_count || 0), 0) }}</div>
       </div>
     </div>
@@ -25,7 +25,7 @@
         <div class="filter-group">
           <div class="search-box">
             <span class="search-box-icon">⌕</span>
-            <input type="text" v-model="keyword" placeholder="搜索问题...">
+            <input type="text" v-model="keyword" placeholder="搜索问题..." @input="onKeywordInput">
           </div>
           <div class="custom-select-wrapper" v-click-outside="closeStatusDropdown">
             <div class="custom-select" @click="toggleStatusDropdown">
@@ -36,8 +36,9 @@
             </div>
             <div class="custom-dropdown" v-if="isStatusOpen">
               <div class="dropdown-item" :class="{ active: statusFilter === '' }" @click="selectStatus('')">全部状态</div>
-              <div class="dropdown-item" :class="{ active: statusFilter === '1' }" @click="selectStatus('1')">显示</div>
-              <div class="dropdown-item" :class="{ active: statusFilter === '0' }" @click="selectStatus('0')">隐藏</div>
+              <div class="dropdown-item" :class="{ active: statusFilter === '1' }" @click="selectStatus('1')">已发布</div>
+              <div class="dropdown-item" :class="{ active: statusFilter === '0' }" @click="selectStatus('0')">禁用</div>
+              <div class="dropdown-item" :class="{ active: statusFilter === '2' }" @click="selectStatus('2')">定时发布</div>
             </div>
           </div>
           <button class="btn btn-primary" @click="showModal = true; resetForm()">
@@ -62,16 +63,16 @@
               <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ q.question }}</td>
               <td>{{ q.date }}</td>
               <td>
-                <span class="status-badge" :class="q.status === 1 ? 'status-published' : 'status-draft'">
-                  {{ q.status === 1 ? '显示' : '隐藏' }}
+                <span class="status-badge" :class="q.status === 1 ? 'status-published' : (q.status === 2 ? 'status-scheduled' : 'status-draft')">
+                  {{ statusText(q.status) }}
                 </span>
               </td>
               <td>{{ q.view_count || 0 }} / {{ q.like_count || 0 }}</td>
               <td>
                 <div style="display: flex; gap: 6px;">
                   <button class="action-btn btn-edit btn-sm" @click="editQuestion(q)">编辑</button>
-                  <button class="action-btn btn-sm" :class="q.status === 1 ? 'btn-hide' : 'btn-edit'" @click="toggleStatus(q)">
-                    {{ q.status === 1 ? '隐藏' : '显示' }}
+                  <button v-if="q.status !== 2" class="action-btn btn-sm" :class="q.status === 1 ? 'btn-hide' : 'btn-edit'" @click="toggleStatus(q)">
+                    {{ q.status === 1 ? '禁用' : '发布' }}
                   </button>
                   <button class="action-btn btn-delete btn-sm" @click="handleDelete(q.id)">删除</button>
                 </div>
@@ -84,6 +85,11 @@
         </table>
       </div>
     </div>
+    <div class="pagination" v-if="total > pageSize">
+      <button class="btn btn-secondary btn-sm" :disabled="page <= 1" @click="changePage(page - 1)">上一页</button>
+      <span>第 {{ page }} / {{ totalPages }} 页，共 {{ total }} 条</span>
+      <button class="btn btn-secondary btn-sm" :disabled="page >= totalPages" @click="changePage(page + 1)">下一页</button>
+    </div>
 
     <div class="modal-overlay" :class="{ active: showModal }" @click.self="showModal = false">
       <div class="modal" style="max-width: 900px;">
@@ -95,6 +101,14 @@
           <div class="form-group">
             <label class="form-label">日期</label>
             <input type="date" class="form-input" v-model="form.date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <select class="form-input" v-model.number="form.status">
+              <option :value="1">已发布</option>
+              <option :value="0">禁用</option>
+              <option :value="2">定时发布</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">问题 <span class="required">*</span></label>
@@ -131,20 +145,24 @@ import { getDailyQuestionList, createDailyQuestion, updateDailyQuestion, deleteD
 import { uploadFile, MEDIA_CATEGORIES } from '../../api/media'
 
 const questions = ref([])
+const page = ref(1)
+const pageSize = 20
+const total = ref(0)
 const keyword = ref('')
 const statusFilter = ref('')
 const showModal = ref(false)
 const editingId = ref(null)
-const form = ref({ question: '', answer: '', date: '' })
+const form = ref({ question: '', answer: '', date: '', status: 1 })
 const editorTheme = ref(localStorage.getItem('scheme') === 'dark' ? 'dark' : 'light')
 
 // 自定义下拉菜单逻辑
 const isStatusOpen = ref(false)
 
 const selectedStatusLabel = computed(() => {
-  const map = { '': '全部状态', '1': '显示', '0': '隐藏' }
+  const map = { '': '全部状态', '1': '已发布', '0': '禁用', '2': '定时发布' }
   return map[statusFilter.value] || '全部状态'
 })
+const statusText = (status) => ({ 0: '禁用', 1: '已发布', 2: '定时发布' }[status] || '未知')
 
 const toggleStatusDropdown = () => {
   isStatusOpen.value = !isStatusOpen.value
@@ -157,28 +175,41 @@ const closeStatusDropdown = () => {
 const selectStatus = (value) => {
   statusFilter.value = value
   isStatusOpen.value = false
+  page.value = 1
+  loadQuestions()
 }
 
-const filteredQuestions = computed(() => {
-  let list = questions.value
-  if (statusFilter.value !== '') list = list.filter(q => String(q.status) === statusFilter.value)
-  if (keyword.value) list = list.filter(q => (q.question || '').includes(keyword.value))
-  return list
-})
+const filteredQuestions = computed(() => questions.value)
 
-const resetForm = () => { editingId.value = null; form.value = { question: '', answer: '', date: '' } }
+const resetForm = () => { editingId.value = null; form.value = { question: '', answer: '', date: '', status: 1 } }
 
 const editQuestion = (q) => {
   editingId.value = q.id
-  form.value = { question: q.question, answer: q.answer, date: q.date }
+  form.value = { question: q.question, answer: q.answer, date: q.date, status: q.status }
   showModal.value = true
 }
 
 const loadQuestions = async () => {
   try {
-    const res = await getDailyQuestionList({ page: 1, page_size: 100 })
+    const params = { page: page.value, page_size: pageSize }
+    if (statusFilter.value !== '') params.status = Number(statusFilter.value)
+    if (keyword.value.trim()) params.keyword = keyword.value.trim()
+    const res = await getDailyQuestionList(params)
     questions.value = res.data?.list || []
+    total.value = res.data?.total || 0
   } catch (e) { console.error(e) }
+}
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+const changePage = (nextPage) => {
+  if (nextPage < 1 || nextPage > totalPages.value) return
+  page.value = nextPage
+  loadQuestions()
+}
+
+const onKeywordInput = () => {
+  page.value = 1
+  loadQuestions()
 }
 
 // 图片上传处理

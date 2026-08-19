@@ -5,27 +5,27 @@
     <div v-else class="comment-stats-grid">
       <div class="stat-card">
         <div class="stat-label">全部评论</div>
-        <div class="stat-value">{{ comments.length }}</div>
+      <div class="stat-value">{{ stats.total }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">待审核</div>
-        <div class="stat-value text-warning">{{ comments.filter(c => c.status === 'pending').length }}</div>
+        <div class="stat-value text-warning">{{ stats.pending }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">已通过</div>
-        <div class="stat-value text-success">{{ comments.filter(c => c.status === 'approved').length }}</div>
+        <div class="stat-value text-success">{{ stats.approved }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">已拒绝</div>
-        <div class="stat-value text-danger">{{ comments.filter(c => c.status === 'rejected').length }}</div>
+        <div class="stat-value text-danger">{{ stats.rejected }}</div>
       </div>
     </div>
 
     <div class="comment-filter-bar">
-      <CustomSelect class="status-select" v-model="statusFilter" :options="statusOptions" />
+      <CustomSelect class="status-select" v-model="statusFilter" :options="statusOptions" @change="onFilterChange" />
       <div class="search-box">
         <span class="search-box-icon">⌕</span>
-        <input type="text" v-model="keyword" placeholder="搜索评论...">
+        <input type="text" v-model="keyword" placeholder="搜索评论..." @input="onKeywordInput">
       </div>
     </div>
 
@@ -75,6 +75,12 @@
       </template>
     </div>
 
+    <div v-if="total > pageSize" class="card-body comment-pagination">
+      <button class="pagination-btn" :disabled="page <= 1" @click="page--; loadComments()">上一页</button>
+      <span>第 {{ page }} 页 / 共 {{ Math.ceil(total / pageSize) }} 页</span>
+      <button class="pagination-btn" :disabled="page * pageSize >= total" @click="page++; loadComments()">下一页</button>
+    </div>
+
     <div v-if="filteredComments.length === 0 && !loading" class="card">
       <div class="card-body empty-state-sm">暂无评论</div>
     </div>
@@ -92,6 +98,11 @@ const comments = ref([])
 const statusFilter = ref('')
 const keyword = ref('')
 const loading = ref(true)
+const page = ref(1)
+const pageSize = 20
+const total = ref(0)
+const stats = ref({ total: 0, pending: 0, approved: 0, rejected: 0 })
+let keywordTimer
 
 const statusOptions = [
   { value: '', label: '全部状态' },
@@ -124,18 +135,37 @@ const getAvatarStyle = (status) => {
 }
 
 const filteredComments = computed(() => {
-  let list = comments.value
-  if (statusFilter.value) list = list.filter(c => c.status === statusFilter.value)
-  if (keyword.value) list = list.filter(c => (c.nickname || '').includes(keyword.value) || (c.content || '').includes(keyword.value))
-  return list
+  return comments.value
 })
 
 const loadComments = async () => {
   try {
-    const res = await getCommentList({ page: 1, page_size: 100 })
+    const params = { page: page.value, page_size: pageSize }
+    if (statusFilter.value) params.status = statusFilter.value
+    if (keyword.value.trim()) params.keyword = keyword.value.trim()
+    const [res, allRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+      getCommentList(params),
+      getCommentList({ page: 1, page_size: 1, keyword: keyword.value.trim() }),
+      getCommentList({ page: 1, page_size: 1, status: 'pending', keyword: keyword.value.trim() }),
+      getCommentList({ page: 1, page_size: 1, status: 'approved', keyword: keyword.value.trim() }),
+      getCommentList({ page: 1, page_size: 1, status: 'rejected', keyword: keyword.value.trim() })
+    ])
     comments.value = res.data?.list || []
+    total.value = res.data?.total || 0
+    stats.value = {
+      total: allRes.data?.total || 0,
+      pending: pendingRes.data?.total || 0,
+      approved: approvedRes.data?.total || 0,
+      rejected: rejectedRes.data?.total || 0
+    }
   } catch (e) { console.error(e) }
   loading.value = false
+}
+
+const onFilterChange = () => { page.value = 1; loadComments() }
+const onKeywordInput = () => {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => { page.value = 1; loadComments() }, 250)
 }
 
 const handleStatus = async (id, status) => {

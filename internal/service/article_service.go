@@ -351,6 +351,9 @@ func (s *articleService) GetArticleArchives() ([]response.ArchiveResponse, error
 
 // GetAdminArticleList 获取文章列表（后台）
 func (s *articleService) GetAdminArticleList(req *request.ArticleListRequest) (*response.PageResponse, error) {
+	if req.Status != "" && req.Status != entity.ArticleStatusPublished && req.Status != entity.ArticleStatusDraft && req.Status != entity.ArticleStatusScheduled {
+		return nil, bizerrors.New(bizerrors.CodeInvalidParams, "无效的文章状态")
+	}
 	list, total, err := s.articleRepo.ListAll(req.GetOffset(), req.GetPageSize(), req.Status, req.Keyword, req.Category)
 	if err != nil {
 		return nil, fmt.Errorf("获取后台文章列表失败, %w", err)
@@ -463,11 +466,11 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 		article.Content = req.Content
 		article.ReadingTime = calculateReadingTime(req.Content)
 	}
-	if req.Summary != "" {
-		article.Summary = req.Summary
+	if req.Summary != nil {
+		article.Summary = *req.Summary
 	}
-	if req.Cover != "" {
-		article.Cover = req.Cover
+	if req.Cover != nil {
+		article.Cover = *req.Cover
 	}
 	if req.CategoryID != 0 {
 		article.CategoryID = req.CategoryID
@@ -488,9 +491,15 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 	article.ScheduledAt = req.ScheduledAt
 
 	// SEO 字段
-	article.SEOTitle = req.SEOTitle
-	article.SEODescription = req.SEODescription
-	article.SEOKeywords = req.SEOKeywords
+	if req.SEOTitle != nil {
+		article.SEOTitle = *req.SEOTitle
+	}
+	if req.SEODescription != nil {
+		article.SEODescription = *req.SEODescription
+	}
+	if req.SEOKeywords != nil {
+		article.SEOKeywords = *req.SEOKeywords
+	}
 
 	// 更新标签关联
 	if req.TagIDs != nil {

@@ -13,6 +13,85 @@ type articleRepository struct {
 	db *gorm.DB
 }
 
+type articleSearchParts struct {
+	whereSQL      string
+	whereArgs     []interface{}
+	relevanceSQL  string
+	relevanceArgs []interface{}
+	tagSQL        string
+	tagArgs       []interface{}
+}
+
+func buildArticleSearchParts(keyword string) articleSearchParts {
+	words := strings.Fields(keyword)
+	if len(words) == 0 {
+		return articleSearchParts{}
+	}
+
+	titleConds := make([]string, 0, len(words))
+	contentConds := make([]string, 0, len(words))
+	summaryConds := make([]string, 0, len(words))
+	categoryConds := make([]string, 0, len(words))
+	tagConds := make([]string, 0, len(words))
+	whereArgs := make([]interface{}, 0, len(words)*5)
+	tagArgs := make([]interface{}, 0, len(words))
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		titleConds = append(titleConds, "a.title LIKE ?")
+		whereArgs = append(whereArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		contentConds = append(contentConds, "a.content LIKE ?")
+		whereArgs = append(whereArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		summaryConds = append(summaryConds, "a.summary LIKE ?")
+		whereArgs = append(whereArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		categoryConds = append(categoryConds, "c.name LIKE ?")
+		whereArgs = append(whereArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		tagConds = append(tagConds, "t.name LIKE ?")
+		whereArgs = append(whereArgs, likeValue)
+		tagArgs = append(tagArgs, likeValue)
+	}
+
+	titleSQL := "(" + strings.Join(titleConds, " OR ") + ")"
+	contentSQL := "(" + strings.Join(contentConds, " OR ") + ")"
+	summarySQL := "(" + strings.Join(summaryConds, " OR ") + ")"
+	categorySQL := "(" + strings.Join(categoryConds, " OR ") + ")"
+	tagSQL := "(" + strings.Join(tagConds, " OR ") + ")"
+	relevanceSQL := "CASE WHEN " + titleSQL + " THEN 10 WHEN " + summarySQL + " THEN 5 WHEN " + tagSQL + " THEN 3 ELSE 1 END"
+	relevanceArgs := make([]interface{}, 0, len(words)*3)
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		relevanceArgs = append(relevanceArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		relevanceArgs = append(relevanceArgs, likeValue)
+	}
+	for _, word := range words {
+		likeValue := "%" + escapeLikePattern(word) + "%"
+		relevanceArgs = append(relevanceArgs, likeValue)
+	}
+
+	return articleSearchParts{
+		whereSQL:      titleSQL + " OR " + contentSQL + " OR " + summarySQL + " OR " + categorySQL + " OR " + tagSQL,
+		whereArgs:     whereArgs,
+		relevanceSQL:  relevanceSQL,
+		relevanceArgs: relevanceArgs,
+		tagSQL:        tagSQL,
+		tagArgs:       tagArgs,
+	}
+}
+
 // NewArticleRepository 创建文章数据访问
 func NewArticleRepository(db *gorm.DB) ArticleRepository {
 	return &articleRepository{db: db}
@@ -293,59 +372,21 @@ func escapeLikePattern(s string) string {
 func (r *articleRepository) Search(keyword string, offset, limit int) ([]*entity.Article, int64, error) {
 	var articles []*entity.Article
 	var total int64
-
-	// 按空格拆分关键词，每个词独立匹配（OR 逻辑）
-	words := strings.Fields(keyword)
-	if len(words) == 0 {
+	parts := buildArticleSearchParts(keyword)
+	if parts.whereSQL == "" {
 		return nil, 0, nil
 	}
 
-	// 构建每个词的 LIKE 条件
-	// whereArgs: 用于 WHERE 和子查询的参数（title, content, summary, category, tag）
-	// scoreArgs: 用于相关性评分 CASE WHEN 的参数（title, summary, tag）
-	var titleConds, contentConds, summaryConds, catConds, tagConds []string
-	var titleScoreConds, summaryScoreConds, tagScoreConds []string
-	var whereArgs, scoreArgs []interface{}
-
-	for _, w := range words {
-		likeVal := "%" + escapeLikePattern(w) + "%"
-		titleConds = append(titleConds, "a.title LIKE ?")
-		contentConds = append(contentConds, "a.content LIKE ?")
-		summaryConds = append(summaryConds, "a.summary LIKE ?")
-		catConds = append(catConds, "c.name LIKE ?")
-		tagConds = append(tagConds, "t.name LIKE ?")
-		whereArgs = append(whereArgs, likeVal, likeVal, likeVal, likeVal, likeVal)
-
-		titleScoreConds = append(titleScoreConds, "a.title LIKE ?")
-		summaryScoreConds = append(summaryScoreConds, "a.summary LIKE ?")
-		tagScoreConds = append(tagScoreConds, "t.name LIKE ?")
-		scoreArgs = append(scoreArgs, likeVal, likeVal, likeVal)
-	}
-
-	titleExpr := "(" + strings.Join(titleConds, " OR ") + ")"
-	contentExpr := "(" + strings.Join(contentConds, " OR ") + ")"
-	summaryExpr := "(" + strings.Join(summaryConds, " OR ") + ")"
-	catExpr := "(" + strings.Join(catConds, " OR ") + ")"
-	tagExpr := "(" + strings.Join(tagConds, " OR ") + ")"
-	whereCondition := titleExpr + " OR " + contentExpr + " OR " + summaryExpr + " OR " + catExpr + " OR " + tagExpr
-
-	// 相关性评分 CASE WHEN：标题(10) > 摘要(5) > 标签(3) > 内容(1)
-	titleScoreExpr := "(" + strings.Join(titleScoreConds, " OR ") + ")"
-	summaryScoreExpr := "(" + strings.Join(summaryScoreConds, " OR ") + ")"
-	tagScoreExpr := "(" + strings.Join(tagScoreConds, " OR ") + ")"
-	relevanceScore := "CASE WHEN " + titleScoreExpr + " THEN 10 WHEN " + summaryScoreExpr + " THEN 5 WHEN " + tagScoreExpr + " THEN 3 ELSE 1 END"
-
 	// 子查询：匹配标签名的文章 ID（只用 tag 的 whereArgs）
-	tagStart := len(words) * 4 // tag 条件在 whereArgs 中的起始位置
 	tagSubQuery := r.db.Model(&entity.Article{}).
 		Select("DISTINCT articles.id").
 		Joins("JOIN article_tags ON article_tags.article_id = articles.id").
 		Joins("JOIN tags t ON t.id = article_tags.tag_id").
 		Where("articles.status = ?", "published").
-		Where(tagExpr, whereArgs[tagStart:]...)
+		Where(parts.tagSQL, parts.tagArgs...)
 
 	// 主查询 + COUNT 共用的 WHERE 条件
-	mainWhere := append(whereArgs, tagSubQuery)
+	mainWhere := append(append([]interface{}{}, parts.whereArgs...), tagSubQuery)
 
 	query := r.db.Model(&entity.Article{}).
 		Table("articles a").
@@ -353,9 +394,9 @@ func (r *articleRepository) Search(keyword string, offset, limit int) ([]*entity
 		Joins("LEFT JOIN article_tags at2 ON at2.article_id = a.id").
 		Joins("LEFT JOIN tags t ON t.id = at2.tag_id").
 		Where("a.status = ?", "published").
-		Where("("+whereCondition+") OR a.id IN (?)", mainWhere...).
+		Where("("+parts.whereSQL+") OR a.id IN (?)", mainWhere...).
 		Group("a.id").
-		Select("a.*, " + relevanceScore + " AS relevance_score")
+		Select("a.*, "+parts.relevanceSQL+" AS relevance_score", parts.relevanceArgs...)
 
 	// COUNT 查询（不带排序和分页）
 	countQuery := r.db.Model(&entity.Article{}).
@@ -364,10 +405,9 @@ func (r *articleRepository) Search(keyword string, offset, limit int) ([]*entity
 		Joins("LEFT JOIN article_tags at2 ON at2.article_id = a.id").
 		Joins("LEFT JOIN tags t ON t.id = at2.tag_id").
 		Where("a.status = ?", "published").
-		Where("("+whereCondition+") OR a.id IN (?)", mainWhere...).
-		Group("a.id")
+		Where("("+parts.whereSQL+") OR a.id IN (?)", mainWhere...)
 
-	if err := countQuery.Count(&total).Error; err != nil {
+	if err := countQuery.Distinct("a.id").Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 

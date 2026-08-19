@@ -8,7 +8,7 @@
         <div class="stat-value">{{ tags.length }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">文章总数</div>
+        <div class="stat-label">标签关联文章数</div>
         <div class="stat-value">{{ totalArticles }}</div>
       </div>
     </div>
