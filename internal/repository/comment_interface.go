@@ -20,7 +20,7 @@ type CommentRepository interface {
 	ListByArticleID(articleID uint, offset, limit int, sortBy string) ([]*entity.Comment, int64, error)
 
 	// AdminList 评论列表（后台）
-	AdminList(offset, limit int, status string) ([]*entity.Comment, int64, error)
+	AdminList(offset, limit int, status, keyword string) ([]*entity.Comment, int64, error)
 
 	// Count 统计评论数量
 	Count(status string) (int64, error)

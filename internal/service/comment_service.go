@@ -352,7 +352,10 @@ func (s *commentService) GetAdminCommentList(req *request.CommentListRequest) (*
 		req.PageSize = 10
 	}
 
-	list, total, err := s.commentRepo.AdminList((req.Page-1)*req.PageSize, req.PageSize, req.Status)
+	if req.Status != "" && req.Status != "pending" && req.Status != "approved" && req.Status != "rejected" {
+		return nil, bizerrors.New(bizerrors.CodeInvalidParams, "无效的评论状态")
+	}
+	list, total, err := s.commentRepo.AdminList((req.Page-1)*req.PageSize, req.PageSize, req.Status, req.Keyword)
 	if err != nil {
 		return nil, fmt.Errorf("获取后台评论列表失败, %w", err)
 	}

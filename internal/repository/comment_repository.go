@@ -4,6 +4,7 @@ import (
 	"blog/internal/model/entity"
 	bizerrors "blog/pkg/errors"
 	"sort"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -238,13 +239,17 @@ func (r *commentRepository) ListByArticleID(articleID uint, offset, limit int, s
 }
 
 // AdminList 评论列表（后台）
-func (r *commentRepository) AdminList(offset, limit int, status string) ([]*entity.Comment, int64, error) {
+func (r *commentRepository) AdminList(offset, limit int, status, keyword string) ([]*entity.Comment, int64, error) {
 	var comments []*entity.Comment
 	var total int64
 
 	query := r.db.Model(&entity.Comment{})
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+	if strings.TrimSpace(keyword) != "" {
+		like := "%" + escapeCommentLikePattern(strings.TrimSpace(keyword)) + "%"
+		query = query.Joins("LEFT JOIN articles ON articles.id = comments.article_id").Where("comments.nickname LIKE ? OR comments.email LIKE ? OR comments.content LIKE ? OR articles.title LIKE ?", like, like, like, like)
 	}
 
 	err := query.Count(&total).Error
@@ -257,6 +262,13 @@ func (r *commentRepository) AdminList(offset, limit int, status string) ([]*enti
 		Order("created_at DESC").
 		Find(&comments).Error
 	return comments, total, err
+}
+
+func escapeCommentLikePattern(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	value = strings.ReplaceAll(value, `_`, `\_`)
+	return value
 }
 
 // Count 统计评论数量

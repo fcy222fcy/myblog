@@ -4,6 +4,7 @@ package request
 type CommentListRequest struct {
 	PageRequest
 	Status    string `json:"status" form:"status"`
+	Keyword   string `json:"keyword" form:"keyword"`
 	ArticleID uint   `json:"article_id" form:"article_id"`
 	SortBy    string `json:"sort_by" form:"sort_by"` // asc / desc / hot
 }
