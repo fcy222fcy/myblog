@@ -23,7 +23,7 @@ type DailyQuestionRepository interface {
 	Delete(id uint) error
 
 	// List 问题列表（后台）
-	List(offset, limit int, status int) ([]*entity.DailyQuestion, int64, error)
+	List(offset, limit int, status int, keyword, date string) ([]*entity.DailyQuestion, int64, error)
 
 	// GetLatest 获取最新问题
 	GetLatest() (*entity.DailyQuestion, error)

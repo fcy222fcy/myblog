@@ -3,6 +3,8 @@ package repository
 import (
 	"blog/internal/model/entity"
 	bizerrors "blog/pkg/errors"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -34,7 +36,7 @@ func (r *dailyQuestionRepository) FindByID(id uint) (*entity.DailyQuestion, erro
 // GetAllPublished 获取所有已发布问题
 func (r *dailyQuestionRepository) GetAllPublished() ([]*entity.DailyQuestion, error) {
 	var questions []*entity.DailyQuestion
-	err := r.db.Where("status = ?", entity.DailyQuestionStatusPublished).Order("date DESC").Find(&questions).Error
+	err := r.db.Where("status = ? AND date <= ?", entity.DailyQuestionStatusPublished, time.Now().Format("2006-01-02")).Order("date DESC").Find(&questions).Error
 	return questions, err
 }
 
@@ -74,13 +76,20 @@ func (r *dailyQuestionRepository) Delete(id uint) error {
 }
 
 // List 问题列表（后台）
-func (r *dailyQuestionRepository) List(offset, limit int, status int) ([]*entity.DailyQuestion, int64, error) {
+func (r *dailyQuestionRepository) List(offset, limit int, status int, keyword, date string) ([]*entity.DailyQuestion, int64, error) {
 	var questions []*entity.DailyQuestion
 	var total int64
 
 	query := r.db.Model(&entity.DailyQuestion{})
 	if status >= 0 {
 		query = query.Where("status = ?", status)
+	}
+	if strings.TrimSpace(keyword) != "" {
+		like := "%" + strings.TrimSpace(keyword) + "%"
+		query = query.Where("question LIKE ? OR answer LIKE ? OR date LIKE ?", like, like, like)
+	}
+	if strings.TrimSpace(date) != "" {
+		query = query.Where("date = ?", strings.TrimSpace(date))
 	}
 
 	err := query.Count(&total).Error
@@ -97,7 +106,7 @@ func (r *dailyQuestionRepository) List(offset, limit int, status int) ([]*entity
 // GetLatest 获取最新问题
 func (r *dailyQuestionRepository) GetLatest() (*entity.DailyQuestion, error) {
 	var question entity.DailyQuestion
-	err := r.db.Where("status = ?", entity.DailyQuestionStatusPublished).Order("date DESC").First(&question).Error
+	err := r.db.Where("status = ? AND date <= ?", entity.DailyQuestionStatusPublished, time.Now().Format("2006-01-02")).Order("date DESC").First(&question).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -124,7 +133,7 @@ func (r *dailyQuestionRepository) GetPrevious(date string) (*entity.DailyQuestio
 // GetNext 获取后一天的问题
 func (r *dailyQuestionRepository) GetNext(date string) (*entity.DailyQuestion, error) {
 	var question entity.DailyQuestion
-	err := r.db.Where("status = ? AND date > ?", entity.DailyQuestionStatusPublished, date).
+	err := r.db.Where("status = ? AND date > ? AND date <= ?", entity.DailyQuestionStatusPublished, date, time.Now().Format("2006-01-02")).
 		Order("date ASC").First(&question).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
