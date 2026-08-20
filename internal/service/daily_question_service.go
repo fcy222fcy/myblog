@@ -9,6 +9,7 @@ import (
 	"blog/pkg/logger"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // dailyQuestionService 每日一问服务实现
@@ -60,6 +61,9 @@ func (s *dailyQuestionService) GetQuestionByDate(date string) (*response.DailyQu
 		return nil, fmt.Errorf("根据日期查询问题失败, %w", err)
 	}
 	if question == nil {
+		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
+	}
+	if question.Status != entity.DailyQuestionStatusPublished || question.Date > time.Now().Format("2006-01-02") {
 		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
 	}
 
@@ -116,8 +120,11 @@ func (s *dailyQuestionService) GetAdminQuestionList(req *request.DailyQuestionLi
 	if req.Status != nil {
 		status = *req.Status
 	}
+	if status < -1 || status > entity.DailyQuestionStatusScheduled {
+		return nil, bizerrors.New(bizerrors.CodeInvalidParams, "无效的问题状态")
+	}
 
-	list, total, err := s.dailyQuestionRepo.List((req.Page-1)*req.PageSize, req.PageSize, status)
+	list, total, err := s.dailyQuestionRepo.List((req.Page-1)*req.PageSize, req.PageSize, status, req.Keyword, req.Date)
 	if err != nil {
 		return nil, fmt.Errorf("获取后台问题列表失败, %w", err)
 	}
@@ -152,14 +159,18 @@ func (s *dailyQuestionService) CreateQuestion(req *request.CreateDailyQuestionRe
 		return 0, bizerrors.New(bizerrors.CodeDailyQuestionDateExists, bizerrors.GetMessage(bizerrors.CodeDailyQuestionDateExists))
 	}
 
+	status := entity.DailyQuestionStatusPublished
+	if req.Status != nil {
+		status = *req.Status
+	}
+	if status < entity.DailyQuestionStatusDisabled || status > entity.DailyQuestionStatusScheduled {
+		return 0, bizerrors.New(bizerrors.CodeInvalidParams, "无效的问题状态")
+	}
 	question := &entity.DailyQuestion{
 		Question: req.Question,
 		Answer:   req.Answer,
 		Date:     req.Date,
-		Status:   entity.DailyQuestionStatusPublished,
-	}
-	if req.Status == entity.DailyQuestionStatusScheduled {
-		question.Status = entity.DailyQuestionStatusScheduled
+		Status:   status,
 	}
 
 	err := s.dailyQuestionRepo.Create(question)
@@ -184,8 +195,8 @@ func (s *dailyQuestionService) UpdateQuestion(id uint, req *request.UpdateDailyQ
 	if req.Question != "" {
 		question.Question = req.Question
 	}
-	if req.Answer != "" {
-		question.Answer = req.Answer
+	if req.Answer != nil {
+		question.Answer = *req.Answer
 	}
 	if req.Date != "" {
 		existing, _ := s.dailyQuestionRepo.FindByDate(req.Date)
@@ -195,6 +206,9 @@ func (s *dailyQuestionService) UpdateQuestion(id uint, req *request.UpdateDailyQ
 		question.Date = req.Date
 	}
 	if req.Status != nil {
+		if *req.Status < entity.DailyQuestionStatusDisabled || *req.Status > entity.DailyQuestionStatusScheduled {
+			return bizerrors.New(bizerrors.CodeInvalidParams, "无效的问题状态")
+		}
 		question.Status = *req.Status
 	}
 
@@ -226,6 +240,9 @@ func (s *dailyQuestionService) DeleteQuestion(id uint) error {
 
 // UpdateQuestionStatus 更新问题状态
 func (s *dailyQuestionService) UpdateQuestionStatus(id uint, status int) error {
+	if status < entity.DailyQuestionStatusDisabled || status > entity.DailyQuestionStatusScheduled {
+		return bizerrors.New(bizerrors.CodeInvalidParams, "无效的问题状态")
+	}
 	question, err := s.dailyQuestionRepo.FindByID(id)
 	if err != nil {
 		return fmt.Errorf("查询问题失败, %w", err)

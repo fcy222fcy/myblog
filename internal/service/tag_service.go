@@ -5,10 +5,10 @@ import (
 	"blog/internal/model/dto/response"
 	"blog/internal/model/entity"
 	"blog/internal/repository"
-	"blog/pkg/redis"
-	"blog/pkg/slug"
 	bizerrors "blog/pkg/errors"
 	"blog/pkg/logger"
+	"blog/pkg/redis"
+	"blog/pkg/slug"
 	"context"
 	"fmt"
 	"time"
@@ -115,8 +115,8 @@ func (s *tagService) UpdateTag(id uint, req *request.UpdateTagRequest) error {
 		}
 		tag.Name = req.Name
 	}
-	if req.Slug != "" {
-		tag.Slug = req.Slug
+	if req.Slug != nil {
+		tag.Slug = *req.Slug
 	}
 
 	if err := s.tagRepo.Update(tag); err != nil {

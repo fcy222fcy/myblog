@@ -18,13 +18,13 @@ type LoginResponse struct {
 
 // UserProfileResponse 用户信息响应
 type UserProfileResponse struct {
-	ID          uint          `json:"id"`
-	Username    string        `json:"username"`
-	Nickname    string        `json:"nickname"`
-	Email       string        `json:"email"`
-	Avatar      string        `json:"avatar"`
-	Bio         string        `json:"bio"`
-	SocialLinks []SocialLink  `json:"social_links"`
+	ID          uint         `json:"id"`
+	Username    string       `json:"username"`
+	Nickname    string       `json:"nickname"`
+	Email       string       `json:"email"`
+	Avatar      string       `json:"avatar"`
+	Bio         string       `json:"bio"`
+	SocialLinks []SocialLink `json:"social_links"`
 }
 
 // SocialLink 社交链接

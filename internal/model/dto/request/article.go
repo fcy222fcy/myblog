@@ -32,15 +32,15 @@ type CreateArticleRequest struct {
 type UpdateArticleRequest struct {
 	Title          string     `json:"title" binding:"min=1,max=200"`
 	Content        string     `json:"content"`
-	Summary        string     `json:"summary"`
-	Cover          string     `json:"cover"`
+	Summary        *string    `json:"summary"`
+	Cover          *string    `json:"cover"`
 	CategoryID     uint       `json:"category_id"`
 	TagIDs         []uint     `json:"tag_ids"`
 	Status         string     `json:"status" binding:"omitempty,oneof=published draft scheduled"`
 	IsTop          bool       `json:"is_top"`
 	Slug           string     `json:"slug" binding:"max=200"`
 	ScheduledAt    *time.Time `json:"scheduled_at"`
-	SEOTitle       string     `json:"seo_title" binding:"max=200"`
-	SEODescription string     `json:"seo_description" binding:"max=500"`
-	SEOKeywords    string     `json:"seo_keywords" binding:"max=300"`
+	SEOTitle       *string    `json:"seo_title" binding:"max=200"`
+	SEODescription *string    `json:"seo_description" binding:"max=500"`
+	SEOKeywords    *string    `json:"seo_keywords" binding:"max=300"`
 }

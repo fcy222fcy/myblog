@@ -118,11 +118,11 @@ func closeOutputs() error {
 	return err
 }
 
-func Debug(msg string, fields ...zap.Field)  { log.Debug(msg, fields...) }
-func Info(msg string, fields ...zap.Field)   { log.Info(msg, fields...) }
-func Warn(msg string, fields ...zap.Field)   { log.Warn(msg, fields...) }
-func Error(msg string, fields ...zap.Field)  { log.Error(msg, fields...) }
-func Fatal(msg string, fields ...zap.Field)  { log.Panic(msg, fields...) }
+func Debug(msg string, fields ...zap.Field) { log.Debug(msg, fields...) }
+func Info(msg string, fields ...zap.Field)  { log.Info(msg, fields...) }
+func Warn(msg string, fields ...zap.Field)  { log.Warn(msg, fields...) }
+func Error(msg string, fields ...zap.Field) { log.Error(msg, fields...) }
+func Fatal(msg string, fields ...zap.Field) { log.Panic(msg, fields...) }
 
 func Debugf(format string, args ...interface{}) { sugar.Debugf(format, args...) }
 func Infof(format string, args ...interface{})  { sugar.Infof(format, args...) }
@@ -130,7 +130,7 @@ func Warnf(format string, args ...interface{})  { sugar.Warnf(format, args...) }
 func Errorf(format string, args ...interface{}) { sugar.Errorf(format, args...) }
 func Fatalf(format string, args ...interface{}) { sugar.Fatalf(format, args...) }
 
-func With(fields ...zap.Field) *zap.Logger       { return log.With(fields...) }
-func Sync() error                                 { return log.Sync() }
-func GetLogger() *zap.Logger                      { return log }
-func GetSugaredLogger() *zap.SugaredLogger        { return sugar }
+func With(fields ...zap.Field) *zap.Logger { return log.With(fields...) }
+func Sync() error                          { return log.Sync() }
+func GetLogger() *zap.Logger               { return log }
+func GetSugaredLogger() *zap.SugaredLogger { return sugar }

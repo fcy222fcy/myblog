@@ -8,6 +8,6 @@ type CreateTagRequest struct {
 
 // UpdateTagRequest 更新标签请求
 type UpdateTagRequest struct {
-	Name string `json:"name" binding:"min=1,max=50"`
-	Slug string `json:"slug" binding:"min=1,max=50"`
+	Name string  `json:"name" binding:"min=1,max=50"`
+	Slug *string `json:"slug" binding:"max=50"`
 }

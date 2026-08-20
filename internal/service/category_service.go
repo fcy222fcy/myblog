@@ -5,10 +5,10 @@ import (
 	"blog/internal/model/dto/response"
 	"blog/internal/model/entity"
 	"blog/internal/repository"
-	"blog/pkg/redis"
-	"blog/pkg/slug"
 	bizerrors "blog/pkg/errors"
 	"blog/pkg/logger"
+	"blog/pkg/redis"
+	"blog/pkg/slug"
 	"context"
 	"fmt"
 	"time"
@@ -142,14 +142,14 @@ func (s *categoryService) UpdateCategory(id uint, req *request.UpdateCategoryReq
 		}
 		category.Name = req.Name
 	}
-	if req.Slug != "" {
-		category.Slug = req.Slug
+	if req.Slug != nil {
+		category.Slug = *req.Slug
 	}
-	if req.Description != "" {
-		category.Description = req.Description
+	if req.Description != nil {
+		category.Description = *req.Description
 	}
-	if req.Icon != "" {
-		category.Icon = req.Icon
+	if req.Icon != nil {
+		category.Icon = *req.Icon
 	}
 	if req.SortOrder != 0 {
 		category.SortOrder = req.SortOrder

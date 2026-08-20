@@ -3,15 +3,15 @@ package entity
 // AboutPage 关于页面
 type AboutPage struct {
 	BaseEntity
-	Title       string `gorm:"type:varchar(200)" json:"title"`        // 页面标题
-	Subtitle    string `gorm:"type:varchar(500)" json:"subtitle"`     // 副标题
-	Bio         string `gorm:"type:text" json:"bio"`                  // 简介
-	Skills      string `gorm:"type:text" json:"skills"`               // 技能标签（JSON 数组）
-	AboutMe     string `gorm:"type:text" json:"about_me"`             // 关于我详细信息（JSON）
-	AboutSite   string `gorm:"type:text" json:"about_site"`           // 关于网站信息（JSON）
-	Projects    string `gorm:"type:text" json:"projects"`             // 项目列表（JSON）
-	ContactInfo string `gorm:"type:text" json:"contact_info"`         // 联系信息（JSON）
-	SiteHistory string `gorm:"type:text" json:"site_history"`         // 建站历程（JSON 数组）
+	Title       string `gorm:"type:varchar(200)" json:"title"`    // 页面标题
+	Subtitle    string `gorm:"type:varchar(500)" json:"subtitle"` // 副标题
+	Bio         string `gorm:"type:text" json:"bio"`              // 简介
+	Skills      string `gorm:"type:text" json:"skills"`           // 技能标签（JSON 数组）
+	AboutMe     string `gorm:"type:text" json:"about_me"`         // 关于我详细信息（JSON）
+	AboutSite   string `gorm:"type:text" json:"about_site"`       // 关于网站信息（JSON）
+	Projects    string `gorm:"type:text" json:"projects"`         // 项目列表（JSON）
+	ContactInfo string `gorm:"type:text" json:"contact_info"`     // 联系信息（JSON）
+	SiteHistory string `gorm:"type:text" json:"site_history"`     // 建站历程（JSON 数组）
 }
 
 // TableName 表名

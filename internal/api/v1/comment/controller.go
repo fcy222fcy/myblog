@@ -111,9 +111,7 @@ func (c *Controller) UpdateCommentStatus(ctx *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Status string `json:"status" binding:"required"`
-	}
+	var req request.UpdateCommentStatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, "参数错误")
 		return

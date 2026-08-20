@@ -4,9 +4,9 @@ import "time"
 
 // 文章状态常量
 const (
-	ArticleStatusDraft      = "draft"      // 草稿
-	ArticleStatusPublished  = "published"  // 已发布
-	ArticleStatusScheduled  = "scheduled"  // 定时发布
+	ArticleStatusDraft     = "draft"     // 草稿
+	ArticleStatusPublished = "published" // 已发布
+	ArticleStatusScheduled = "scheduled" // 定时发布
 )
 
 // Article 文章
@@ -24,11 +24,11 @@ type Article struct {
 	CommentCount   int64      `gorm:"default:0" json:"comment_count"`
 	Status         string     `gorm:"type:varchar(20);default:published;index" json:"status"` // published: 已发布 draft: 草稿 scheduled: 定时发布
 	IsTop          bool       `gorm:"default:false" json:"is_top"`
-	ReadingTime    int        `gorm:"default:0" json:"reading_time"` // 阅读时长（分钟）
-	ScheduledAt    *time.Time `gorm:"type:datetime" json:"scheduled_at"`                 // 定时发布时间
-	SEOTitle       string     `gorm:"type:varchar(200);default:''" json:"seo_title"`     // SEO 标题
+	ReadingTime    int        `gorm:"default:0" json:"reading_time"`                       // 阅读时长（分钟）
+	ScheduledAt    *time.Time `gorm:"type:datetime" json:"scheduled_at"`                   // 定时发布时间
+	SEOTitle       string     `gorm:"type:varchar(200);default:''" json:"seo_title"`       // SEO 标题
 	SEODescription string     `gorm:"type:varchar(500);default:''" json:"seo_description"` // SEO 描述
-	SEOKeywords    string     `gorm:"type:varchar(300);default:''" json:"seo_keywords"`  // SEO 关键词
+	SEOKeywords    string     `gorm:"type:varchar(300);default:''" json:"seo_keywords"`    // SEO 关键词
 }
 
 // TableName 表名

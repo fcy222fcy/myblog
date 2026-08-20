@@ -31,10 +31,11 @@ func Parse(userAgent string) Info {
 }
 
 // toTwoPartVersion 把版本号统一成「主版本.次版本」两位格式
-//   11          → 11.0
-//   126.0.6099  → 126.0
-//   17.5        → 17.5
-//   XP / (iOS) / 14 (Sonoma)  → 非纯数字或带名字的：保留原名+版本号按前两位处理
+//
+//	11          → 11.0
+//	126.0.6099  → 126.0
+//	17.5        → 17.5
+//	XP / (iOS) / 14 (Sonoma)  → 非纯数字或带名字的：保留原名+版本号按前两位处理
 func toTwoPartVersion(ver string) string {
 	ver = strings.TrimSpace(ver)
 	if ver == "" {
