@@ -1,6 +1,6 @@
 # Go build
 bin/
-server
+/server
 *.exe
 *.exe~
 *.dll

@@ -25,7 +25,7 @@ RUN apk add --no-cache ca-certificates tzdata \
 ENV TZ=Asia/Shanghai
 
 COPY --from=builder /out/blog-server /app/blog-server
-COPY configs/ /app/configs/
+COPY configs/config.example.yaml /app/configs/config.yaml
 COPY scripts/ /app/scripts/
 
 EXPOSE 9090

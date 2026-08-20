@@ -1,0 +1,52 @@
+server:
+  port: 9090
+  cors_origins:
+    - http://localhost:3000
+    - http://localhost:9090
+    - http://localhost:5173
+    - http://localhost:5174
+
+mysql:
+  host: mysql
+  port: 3306
+  username: blog_user
+  password: ""
+  dbname: blog
+
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  secret: ""
+  expire_hour: 168
+
+log:
+  level: info
+  filename: logs/app.log
+  max_size: 100
+  max_backups: 7
+  max_age: 30
+
+email:
+  host: ""
+  port: 465
+  username: ""
+  password: ""
+  from: 博客评论通知
+  from_email: ""
+
+blogger:
+  user_id: 1
+  username: admin
+  password: ""
+  nickname: 博主
+  email: ""
+  avatar: /avatar.jpg
+
+app:
+  seed_data: true
+  init_sql_dir: /app/scripts
+  upload_dir: /app/uploads

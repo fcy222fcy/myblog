@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: 配置 Go 环境
         uses: actions/setup-go@v7
@@ -35,8 +37,18 @@ jobs:
         run: go mod verify
 
       - name: 检查代码格式 (gofmt)
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          unformatted=$(gofmt -l cmd internal pkg)
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA=$(git rev-parse HEAD^)
+          fi
+          mapfile -t changed_go_files < <(git diff --diff-filter=ACMR --name-only "$BASE_SHA" "$GITHUB_SHA" -- '*.go')
+          if [ "${#changed_go_files[@]}" -eq 0 ]; then
+            echo "本次变更没有 Go 文件，跳过 gofmt 检查。"
+            exit 0
+          fi
+          unformatted=$(gofmt -l "${changed_go_files[@]}")
           if [ -n "$unformatted" ]; then
             echo "以下文件未通过 gofmt 格式检查，请本地执行 gofmt -w 后提交："
             echo "$unformatted"

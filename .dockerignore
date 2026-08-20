@@ -24,7 +24,7 @@ blog-admin/dist
 *.out
 *.test
 blog-server
-server
+/server
 
 # ============================================
 # Documentation and tests
