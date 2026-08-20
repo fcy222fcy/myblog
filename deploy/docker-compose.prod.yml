@@ -1,0 +1,92 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gin-blog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${DB_NAME:?DB_NAME is required}
+      MYSQL_USER: ${DB_USER:?DB_USER is required}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [gin-blog]
+
+  redis:
+    image: redis:7-alpine
+    container_name: gin-blog-redis
+    restart: unless-stopped
+    command: >-
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+        redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+      else
+        redis-server --appendonly yes;
+      fi'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      TZ: Asia/Shanghai
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: >-
+        sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-cli -a "$$REDIS_PASSWORD" ping;
+        else
+          redis-cli ping;
+        fi'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [gin-blog]
+
+  backend:
+    image: ghcr.io/fcy222fcy/blog-backend:${RELEASE_TAG:?RELEASE_TAG is required}
+    container_name: gin-blog-backend
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-9090}
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      APP_INIT_SQL_DIR: /app/scripts
+      APP_UPLOAD_DIR: ${APP_UPLOAD_DIR:-/app/uploads}
+      TZ: Asia/Shanghai
+    expose: ['9090']
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs/backend:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [gin-blog]
+
+  nginx:
+    image: ghcr.io/fcy222fcy/blog-nginx:${RELEASE_TAG:?RELEASE_TAG is required}
+    container_name: gin-blog-nginx
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+    depends_on: [backend]
+    networks: [gin-blog]
+
+networks:
+  gin-blog:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
