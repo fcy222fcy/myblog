@@ -76,6 +76,7 @@ Actions 将本次 Compose 文件和部署脚本复制到 `DEPLOY_PATH`，然后�
 - `SSH_PORT`：SSH 端口。
 - `SSH_USER`：专用部署账号。
 - `SSH_PRIVATE_KEY`：对应部署账号的私钥。
+- `SSH_KNOWN_HOSTS`：预先核验的生产服务器 SSH 主机公钥记录，用于固定服务器身份；工作流不得使用运行时 `ssh-keyscan` 结果替代它。
 - `GHCR_USERNAME`：服务器拉取镜像所用 GitHub 用户名。
 - `GHCR_TOKEN`：仅授予 `read:packages` 的令牌。
 
@@ -146,4 +147,3 @@ CI/CD 配置完成的本地证据包括：
 - 修改 `.gitignore`（仅在需要时）：确保可提交部署模板，同时继续忽略服务器密钥和本地部署产物。
 
 现有业务代码、`.env`、`.env.production`、`.deploy/` 本地产物及其他未提交改动均不在本次范围内。
-
