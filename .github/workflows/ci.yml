@@ -1,0 +1,166 @@
+name: CI
+
+# 触发条件：推送到 main 分支，或向 main 发起 PR
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支/PR 上的新推送会取消仍在运行的旧流水线，节省资源
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 最小权限原则：CI 只需读取仓库内容
+permissions:
+  contents: read
+
+jobs:
+  # -------------------- 后端（Go）--------------------
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 配置 Go 环境
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: 校验 Go 模块
+        run: go mod verify
+
+      - name: 检查代码格式 (gofmt)
+        run: |
+          unformatted=$(gofmt -l cmd internal pkg)
+          if [ -n "$unformatted" ]; then
+            echo "以下文件未通过 gofmt 格式检查，请本地执行 gofmt -w 后提交："
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: 静态检查 (go vet)
+        run: go vet ./cmd/... ./internal/... ./pkg/...
+
+      - name: 编译
+        run: go build ./cmd/... ./internal/... ./pkg/...
+
+      - name: 单元测试
+        run: go test -race -timeout 180s -coverprofile=coverage.out ./cmd/... ./internal/... ./pkg/...
+
+      - name: 上传测试覆盖率报告
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-coverage
+          path: coverage.out
+          if-no-files-found: ignore
+
+  # -------------------- 前台前端（blog-web）--------------------
+  frontend-web:
+    name: Frontend (blog-web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blog-web
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 配置 Node 环境
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: blog-web/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建
+        run: npm run build
+
+  # -------------------- 后台前端（blog-admin）--------------------
+  frontend-admin:
+    name: Frontend (blog-admin)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blog-admin
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 配置 Node 环境
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: blog-admin/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建
+        run: npm run build
+
+  # -------------------- 部署配置 --------------------
+  deployment-config:
+    name: Deployment configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 测试部署脚本
+        run: sh deploy/deploy_test.sh
+
+      - name: 校验生产 Compose
+        env:
+          RELEASE_TAG: sha-0000000000000000000000000000000000000000
+          DB_ROOT_PASSWORD: ci-root-password
+          DB_NAME: blog
+          DB_USER: blog_user
+          DB_PASSWORD: ci-db-password
+          JWT_SECRET: ci-only-secret-with-at-least-32-characters
+          BLOGGER_PASSWORD: ci-admin-password
+        shell: bash
+        run: |
+          cp .env.example deploy/.env
+          trap 'rm -f deploy/.env' EXIT
+          docker compose -f deploy/docker-compose.prod.yml config --quiet
+
+  # -------------------- 生产镜像构建校验 --------------------
+  images:
+    name: Production images
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 配置 Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: 构建后端镜像（仅校验，不推送）
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: gin-blog-backend:ci
+          cache-from: type=gha,scope=ci-backend
+          cache-to: type=gha,mode=max,scope=ci-backend
+
+      - name: 构建统一网关镜像（仅校验，不推送）
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/nginx/Dockerfile
+          push: false
+          tags: gin-blog-nginx:ci
+          cache-from: type=gha,scope=ci-nginx
+          cache-to: type=gha,mode=max,scope=ci-nginx
