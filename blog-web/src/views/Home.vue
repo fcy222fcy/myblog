@@ -26,12 +26,13 @@
               :key="t.id"
               :to="'/tag/' + t.id"
               class="tag-pill"
+              :style="tagStyle(t)"
               :title="'查看「' + t.name + '」标签下的文章'"
               @click.stop
             >#{{ t.name }}</router-link>
           </div>
           <h2>{{ article.title }}</h2>
-          <p>{{ article.summary }}</p>
+          <p>{{ displaySummary(article) }}</p>
           <dl class="article-meta">
             <div>
               <dt>日期</dt>
@@ -82,6 +83,34 @@ const articleStore = useArticleStore()
 
 const retryFetch = () => {
   articleStore.fetchArticles({ page: 1, page_size: 20 })
+}
+
+// 标签颜色：根据 tag.name 字符串 hash 分配稳定色相（不随主题变化）
+const tagStyle = (tag) => {
+  const name = (tag && tag.name) || ''
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360
+  return {
+    background: `hsl(${h}, 55%, 92%)`,
+    color: `hsl(${h}, 60%, 28%)`,
+    borderColor: `hsl(${h}, 50%, 82%)`
+  }
+}
+
+// 摘要展示：优先后端 summary，否则从 Markdown content 提取纯文本截取
+const displaySummary = (article) => {
+  if (!article) return ''
+  if (article.summary && article.summary.trim()) return article.summary
+  const md = article.content || ''
+  const text = md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[#>*_`\-\|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!text) return ''
+  return text.length > 130 ? text.slice(0, 130) + '…' : text
 }
 
 onMounted(() => {

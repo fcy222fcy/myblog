@@ -331,6 +331,9 @@ button, input { font: inherit; }
 .category-build { background: #193c68; }
 .category-dev { background: #6d1b85; }
 .category-life { background: #117361; }
+.category-books { background: #8B5A3C; }
+.category-tools { background: #4A6E8A; }
+.category-study { background: #B8860B; }
 
 .article-card h2 {
   margin: 20px 0 10px;
