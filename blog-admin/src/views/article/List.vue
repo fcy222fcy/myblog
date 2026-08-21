@@ -103,6 +103,21 @@
             <button class="pagination-btn" :disabled="page <= 1" @click="page--; loadArticles()">上一页</button>
             <button class="pagination-btn active">{{ page }}</button>
             <button class="pagination-btn" :disabled="page * 10 >= total" @click="page++; loadArticles()">下一页</button>
+            <span class="pagination-total">共 {{ totalPages }} 页</span>
+            <div class="pagination-jump">
+              <span>跳至</span>
+              <input
+                v-model="jumpPage"
+                type="number"
+                min="1"
+                :max="totalPages"
+                class="pagination-jump-input"
+                @keyup.enter="goToPage"
+                @blur="jumpPage = ''"
+              />
+              <span>页</span>
+              <button class="pagination-btn pagination-jump-btn" :disabled="!jumpPage" @click="goToPage">跳转</button>
+            </div>
           </div>
         </div>
       </div>
@@ -125,6 +140,23 @@ const loading = ref(false)
 const page = ref(1)
 const total = ref(0)
 const allTotal = ref(0)
+const jumpPage = ref('')
+
+// 总页数（每页 10 条）
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / 10)))
+
+// 跳转到指定页
+const goToPage = () => {
+  const target = parseInt(jumpPage.value, 10)
+  if (!target || isNaN(target)) return
+  const maxPage = totalPages.value
+  const p = Math.min(Math.max(1, target), maxPage)
+  if (p !== page.value) {
+    page.value = p
+    loadArticles()
+  }
+  jumpPage.value = ''
+}
 const keyword = ref('')
 const categoryFilter = ref('')
 const statusFilter = ref('')

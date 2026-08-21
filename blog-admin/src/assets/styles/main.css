@@ -235,11 +235,32 @@ button { cursor: pointer; border: none; }
 /* ===== 分页 ===== */
 .pagination { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; flex-wrap: wrap; gap: 14px; }
 .pagination-info { font-size: 14px; color: var(--card-text-color-tertiary); }
-.pagination-buttons { display: flex; gap: 8px; }
+.pagination-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pagination-btn { padding: 8px 14px; border: 1px solid var(--card-separator-color); border-radius: var(--card-border-radius); background: var(--card-background); color: var(--card-text-color-main); font-size: 14px; }
 .pagination-btn:hover:not(:disabled) { border-color: var(--accent-color); color: var(--accent-color); }
 .pagination-btn.active { background: var(--accent-color); border-color: var(--accent-color); color: var(--accent-color-text); }
 .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pagination-total { font-size: 14px; color: var(--card-text-color-tertiary); margin-left: 4px; }
+.pagination-jump { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--card-text-color-tertiary); }
+.pagination-jump-input {
+  width: 56px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--card-separator-color);
+  border-radius: var(--card-border-radius);
+  background: var(--card-background);
+  color: var(--card-text-color-main);
+  font-size: 14px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s ease;
+  -moz-appearance: textfield;
+}
+.pagination-jump-input::-webkit-outer-spin-button,
+.pagination-jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pagination-jump-input:focus { border-color: var(--accent-color); }
+.pagination-jump-btn { padding: 8px 12px; }
+.pagination-jump-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ===== 模态框 ===== */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(16,18,20,0.6); display: none; align-items: center; justify-content: center; z-index: 200; }
