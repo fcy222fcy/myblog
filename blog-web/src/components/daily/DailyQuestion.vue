@@ -66,7 +66,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { getLatestQuestion, getQuestionByDate, getPreviousQuestion, getNextQuestion } from '../../api/daily'
+import { getLatestQuestion, getQuestionByDate, getPreviousQuestion, getNextQuestion, getAllPublishedQuestions } from '../../api/daily'
 
 const question = ref(null)
 const answerVisible = ref(false)
