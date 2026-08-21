@@ -377,7 +377,7 @@ button, input { font: inherit; }
 }
 .archive-list a {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px;
