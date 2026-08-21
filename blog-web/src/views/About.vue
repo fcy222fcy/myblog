@@ -278,17 +278,17 @@ const fetchAbout = async () => {
     }
     skills.value = ['Golang', 'Erlang', 'C# / WPF', 'Unity', 'Docker', 'Vue 3', 'MySQL', 'Gin', 'GORM']
     projects.value = [
-      { name: 'GitHub', description: '我的代码主页，收录了博客系统、Go 工具库、WPF 桌面应用、Unity 游戏 Demo 等 30+ 个开源项目，累计收获 100+ Stars。', url: 'https://github.com/fcy222fcy?tab=repositories', icon: 'github' },
-      { name: 'DesktopSnap', description: '一款已上架微软商店的 Windows 桌面图标布局工具，支持一键保存/恢复桌面图标位置、分辨率切换自动还原、多配置文件管理，累计下载 5000+ 次。', url: 'https://desktopsnap.liuhouliang.com/', icon: 'monitor' },
-      { name: '个人博客系统', description: '基于 Go + Gin + GORM + Vue 3 自主研发的博客系统，支持 Markdown 文章、分类标签、每日一题、评论系统、后台管理，完全从零实现前后端分离。', url: 'https://liuhouliang.com/', icon: 'feather' },
-      { name: 'Cloudflare Workers AI Demo', description: '基于 Cloudflare Workers + Workers AI + Vectorize 构建的个人知识库 AI 问答助手，支持 RAG 语义检索，部署成本几乎为零。', url: '#', icon: 'zap' }
+      { name: 'myblog', description: '个人技术博客仓库，记录 Go 后端、AI Agent、RAG、工程实践与学习总结；本站即基于 Go + Gin + GORM + Vue 3 从零自研。', url: 'https://github.com/fcy222fcy/myblog', icon: 'feather' },
+      { name: 'QavorOnline', description: 'Qavor 在线演示平台，展示 AI Agent 构建、RAG 知识接入、工具扩展与运行观测能力（Vue + Vite 前端）。', url: 'https://github.com/fcy222fcy/QavorOnline', icon: 'zap' },
+      { name: 'shiyou（食友）', description: '面向大学城学生的美食评价与发现平台，覆盖食堂档口、校门口小店、外卖等场景；Go + Gin + GORM + MySQL + Redis 构建。', url: 'https://github.com/fcy222fcy/shiyou', icon: 'server' },
+      { name: 'VibeCoding-Lab', description: 'Vibe Coding 实验仓库，记录小型项目、前端 Demo 与 AI 辅助开发实践。', url: 'https://github.com/fcy222fcy/VibeCoding-Lab', icon: 'package' }
     ]
     aboutMe.value = [
       { label: '职业', value: '后端开发工程师，专注高并发服务与分布式系统设计，日常主导 Go 微服务架构开发与性能调优工作。', icon: 'briefcase' },
       { label: '爱好', value: '周末骑行 50-100 公里放松身心；热爱独立游戏，业余时间用 Unity 尝试 Roguelike 与解谜类游戏原型。', icon: 'bike' },
       { label: '技术栈', value: '后端：Go / Erlang / Gin；桌面：C# / WPF；游戏：Unity / C#；前端：Vue 3 / JavaScript；运维：Docker / MySQL / Redis。', icon: 'layers' },
       { label: '技术方向', value: '长期关注 Serverless、边缘计算（Cloudflare Workers）、AI 原生应用开发，以及独立软件产品商业化探索。', icon: 'compass' },
-      { label: '联系邮箱', value: 'admin@liuhouliang.com（欢迎技术交流、合作邀请、友情链接互换）', icon: 'mail' }
+      { label: '联系邮箱', value: '3181088318@qq.com（欢迎技术交流、合作邀请、友情链接互换）', icon: 'mail' }
     ]
     aboutSite.value = [
       { label: '后端架构', value: 'Go 1.22 + Gin 框架 + GORM ORM，遵循 DDD 分层架构，模块清晰，易于扩展与单元测试覆盖。', icon: 'server' },
