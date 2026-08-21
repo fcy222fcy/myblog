@@ -33,10 +33,10 @@ func (r *dailyQuestionRepository) FindByID(id uint) (*entity.DailyQuestion, erro
 	return &question, nil
 }
 
-// GetAllPublished 获取所有已发布问题
+// GetAllPublished 获取所有已发布问题（不限制日期，供日历标亮排期题目）
 func (r *dailyQuestionRepository) GetAllPublished() ([]*entity.DailyQuestion, error) {
 	var questions []*entity.DailyQuestion
-	err := r.db.Where("status = ? AND date <= ?", entity.DailyQuestionStatusPublished, time.Now().Format("2006-01-02")).Order("date DESC").Find(&questions).Error
+	err := r.db.Where("status = ?", entity.DailyQuestionStatusPublished).Order("date DESC").Find(&questions).Error
 	return questions, err
 }
 
@@ -130,10 +130,10 @@ func (r *dailyQuestionRepository) GetPrevious(date string) (*entity.DailyQuestio
 	return &question, nil
 }
 
-// GetNext 获取后一天的问题
+// GetNext 获取后一天的问题（不限制到今天，允许导航到未来排期）
 func (r *dailyQuestionRepository) GetNext(date string) (*entity.DailyQuestion, error) {
 	var question entity.DailyQuestion
-	err := r.db.Where("status = ? AND date > ? AND date <= ?", entity.DailyQuestionStatusPublished, date, time.Now().Format("2006-01-02")).
+	err := r.db.Where("status = ? AND date > ?", entity.DailyQuestionStatusPublished, date).
 		Order("date ASC").First(&question).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

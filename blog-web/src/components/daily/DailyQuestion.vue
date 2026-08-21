@@ -76,6 +76,20 @@ const showCalendar = ref(false)
 const calendarYear = ref(new Date().getFullYear())
 const calendarMonth = ref(new Date().getMonth())
 
+// 有每日一问的日期集合（用于日历标亮）
+const questionDates = ref(new Set())
+
+// 拉取所有已发布问题的日期
+const loadQuestionDates = async () => {
+  try {
+    const res = await getAllPublishedQuestions()
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    questionDates.value = new Set(list.map((q) => q.date).filter(Boolean))
+  } catch (e) {
+    console.error('获取每日一问日期失败', e)
+  }
+}
+
 // 计算日历天数
 const calendarDays = computed(() => {
   const year = calendarYear.value
@@ -95,12 +109,13 @@ const calendarDays = computed(() => {
     const day = prevMonthLastDay - i
     const m = month === 0 ? 12 : month
     const y = month === 0 ? year - 1 : year
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     days.push({
       day,
-      date: `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      date: dateStr,
       otherMonth: true,
       isToday: false,
-      hasQuestion: false
+      hasQuestion: questionDates.value.has(dateStr)
     })
   }
 
@@ -112,7 +127,7 @@ const calendarDays = computed(() => {
       date: dateStr,
       otherMonth: false,
       isToday: dateStr === todayStr,
-      hasQuestion: false
+      hasQuestion: questionDates.value.has(dateStr)
     })
   }
 
@@ -121,12 +136,13 @@ const calendarDays = computed(() => {
   for (let day = 1; day <= remaining; day++) {
     const m = month + 2 > 12 ? 1 : month + 2
     const y = month + 2 > 12 ? year + 1 : year
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     days.push({
       day,
-      date: `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      date: dateStr,
       otherMonth: true,
       isToday: false,
-      hasQuestion: false
+      hasQuestion: questionDates.value.has(dateStr)
     })
   }
 
@@ -248,6 +264,7 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   loadQuestion()
+  loadQuestionDates()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -424,6 +441,25 @@ onUnmounted(() => {
 .dq-calendar-day.is-selected {
   background: var(--accent-color);
   color: var(--accent-color-text);
+}
+
+/* 有每日一问的日期：圆点标记 */
+.dq-calendar-day.has-question {
+  position: relative;
+}
+.dq-calendar-day.has-question::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+.dq-calendar-day.has-question.is-selected::after {
+  background: var(--accent-color-text);
 }
 
 .dq-calendar-close {

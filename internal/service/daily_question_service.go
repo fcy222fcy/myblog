@@ -9,7 +9,6 @@ import (
 	"blog/pkg/logger"
 	"fmt"
 	"strings"
-	"time"
 )
 
 // dailyQuestionService 每日一问服务实现
@@ -63,7 +62,8 @@ func (s *dailyQuestionService) GetQuestionByDate(date string) (*response.DailyQu
 	if question == nil {
 		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
 	}
-	if question.Status != entity.DailyQuestionStatusPublished || question.Date > time.Now().Format("2006-01-02") {
+	// 仅限制已发布状态；已发布的题目不限制日期（允许查看排期中的未来日期题目）
+	if question.Status != entity.DailyQuestionStatusPublished {
 		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
 	}
 
