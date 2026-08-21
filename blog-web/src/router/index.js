@@ -56,4 +56,10 @@ const router = createRouter({
   }
 })
 
+// 记录上一路由信息，供文章详情页「返回列表」按钮精确返回来源页
+router.afterEach((to, from) => {
+  router.__prevRouteName = from.name
+  router.__prevRoutePath = from.fullPath
+})
+
 export default router

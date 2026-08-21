@@ -1,6 +1,6 @@
 <template>
   <div class="page-view">
-    <router-link to="/" class="back-btn">← 返回列表</router-link>
+    <span class="back-btn" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack">← 返回列表</span>
 
     <!-- 骨架屏加载 -->
     <ArticleDetailSkeleton v-if="articleStore.loading" />
@@ -84,7 +84,7 @@
 
 <script setup>
 import { computed, onMounted, watch, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/article'
 import { marked } from 'marked'
 import CommentSection from '../components/comment/CommentSection.vue'
@@ -113,7 +113,21 @@ const onCoverError = (e) => {
 }
 
 const route = useRoute()
+const router = useRouter()
 const articleStore = useArticleStore()
+
+// 「返回列表」：返回进入详情前的来源页（首页/归档/分类/标签/搜索），
+// 若直接打开详情（无站内来源）则回归档列表，避免误跳主页
+const LIST_ROUTE_NAMES = ['Home', 'Archives', 'Category', 'Tag', 'Search']
+const goBack = () => {
+  const prevName = router.__prevRouteName
+  const prevPath = router.__prevRoutePath
+  if (prevName && (LIST_ROUTE_NAMES.includes(prevName) || prevPath === '/')) {
+    router.back()
+  } else {
+    router.push('/archives')
+  }
+}
 
 // 简单 HTML 净化：移除事件属性和危险标签
 const sanitizeHtml = (html) => {
