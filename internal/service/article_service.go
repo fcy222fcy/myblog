@@ -436,6 +436,11 @@ func (s *articleService) CreateArticle(req *request.CreateArticleRequest) (uint,
 		article.Status = entity.ArticleStatusDraft
 	}
 
+	// 迁移历史文章时保留原始发布时间
+	if req.CreatedAt != nil {
+		article.CreatedAt = *req.CreatedAt
+	}
+
 	err := s.articleRepo.Create(article)
 	if err != nil {
 		return 0, fmt.Errorf("创建文章失败, %w", err)

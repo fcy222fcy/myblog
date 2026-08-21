@@ -13,16 +13,18 @@ type ArticleListRequest struct {
 
 // CreateArticleRequest 创建文章请求
 type CreateArticleRequest struct {
-	Title          string     `json:"title" binding:"required,min=1,max=200"`
-	Content        string     `json:"content" binding:"required,max=50000"`
-	Summary        string     `json:"summary" binding:"max=500"`
-	Cover          string     `json:"cover" binding:"max=500"`
-	CategoryID     uint       `json:"category_id" binding:"required"`
-	TagIDs         []uint     `json:"tag_ids"`
-	Status         string     `json:"status" binding:"omitempty,oneof=published draft scheduled"`
-	IsTop          bool       `json:"is_top"`
-	Slug           string     `json:"slug" binding:"max=200"`
-	ScheduledAt    *time.Time `json:"scheduled_at"`
+	Title       string     `json:"title" binding:"required,min=1,max=200"`
+	Content     string     `json:"content" binding:"required"`
+	Summary     string     `json:"summary" binding:"max=500"`
+	Cover       string     `json:"cover" binding:"max=500"`
+	CategoryID  uint       `json:"category_id" binding:"required"`
+	TagIDs      []uint     `json:"tag_ids"`
+	Status      string     `json:"status" binding:"omitempty,oneof=published draft scheduled"`
+	IsTop       bool       `json:"is_top"`
+	Slug        string     `json:"slug" binding:"max=200"`
+	ScheduledAt *time.Time `json:"scheduled_at"`
+	// CreatedAt 可选，用于迁移历史文章时保留原始发布时间；为空时由系统生成
+	CreatedAt      *time.Time `json:"created_at"`
 	SEOTitle       string     `json:"seo_title" binding:"max=200"`
 	SEODescription string     `json:"seo_description" binding:"max=500"`
 	SEOKeywords    string     `json:"seo_keywords" binding:"max=300"`
