@@ -103,3 +103,6 @@ uploads/
 
 # Local Git worktrees
 .worktrees/
+
+# CSDN migration workspace (contains tokens & raw dumps)
+csdn-migration/
