@@ -339,7 +339,7 @@ onMounted(fetchAbout)
 }
 
 .site-history-card {
-  background: var(--site-history-bg, #faf8f3);
+  background: var(--card-background, #fdfdfb);
   border: 1px solid var(--card-border, #e5e7eb);
   border-radius: 16px;
   padding: 24px 28px 32px;
@@ -348,7 +348,7 @@ onMounted(fetchAbout)
 .site-history-title {
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-main, #1f2937);
+  color: var(--card-text-color-main, #333333);
   margin: 0 0 28px 0;
   display: flex;
   align-items: center;
@@ -371,7 +371,7 @@ onMounted(fetchAbout)
   left: 50%;
   transform: translateX(-50%);
   width: 2px;
-  background: var(--timeline-line, #e5e7eb);
+  background: var(--card-separator-color, #e5e7eb);
   z-index: 1;
 }
 
@@ -395,7 +395,7 @@ onMounted(fetchAbout)
   height: 14px;
   border-radius: 50%;
   background: #2b6cf6;
-  border: 3px solid var(--card-bg, #ffffff);
+  border: 3px solid var(--card-background, #fdfdfb);
   box-shadow: 0 0 0 1px rgba(43, 108, 246, 0.2);
   z-index: 2;
 }
@@ -404,7 +404,7 @@ onMounted(fetchAbout)
 .timeline-card {
   width: calc(50% - 36px);
   padding: 14px 18px;
-  background: var(--card-bg, #ffffff);
+  background: var(--card-background, #fdfdfb);
   border: 1px solid var(--card-border, #e5e7eb);
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -428,7 +428,7 @@ onMounted(fetchAbout)
   left: -7px;
   width: 12px;
   height: 12px;
-  background: var(--card-bg, #ffffff);
+  background: var(--card-background, #fdfdfb);
   border-left: 1px solid var(--card-border, #e5e7eb);
   border-bottom: 1px solid var(--card-border, #e5e7eb);
   transform: rotate(45deg);
@@ -442,7 +442,7 @@ onMounted(fetchAbout)
   right: -7px;
   width: 12px;
   height: 12px;
-  background: var(--card-bg, #ffffff);
+  background: var(--card-background, #fdfdfb);
   border-right: 1px solid var(--card-border, #e5e7eb);
   border-top: 1px solid var(--card-border, #e5e7eb);
   transform: rotate(45deg);
@@ -466,7 +466,7 @@ onMounted(fetchAbout)
   margin: 0;
   font-size: 14px;
   line-height: 1.7;
-  color: var(--text-main, #1f2937);
+  color: var(--card-text-color-main, #333333);
   white-space: pre-wrap;
   word-break: break-word;
 }
