@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">✍️ Gin Blog — 自研博客系统</h1>
+  <h1 align="center">✍️ Gin Blog — 博客系统</h1>
 </p>
 
 <p align="center">
