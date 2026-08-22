@@ -101,9 +101,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, watch, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { searchArticles } from '../api/article'
+import { saveListState, takeListState } from '../composables/useListState'
 
 const route = useRoute()
 const router = useRouter()
@@ -181,23 +182,40 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// 监听路由 query 变化
+// 离开搜索页（去往文章详情）时保存快照，返回时恢复页码与滚动位置
+onBeforeRouteLeave(() => {
+  saveListState(route.fullPath, { page: currentPage.value })
+})
+
+// 关键词变化属于「新搜索」，主动消费掉旧快照（避免重搜同词时跳到旧位置）
 watch(
   () => route.query.q,
   (newQ) => {
     if (newQ) {
       keyword.value = newQ
       currentPage.value = 1
+      takeListState(route.fullPath)
+      window.scrollTo({ top: 0 })
       fetchResults()
     }
   }
 )
 
-onMounted(() => {
+onMounted(async () => {
   const q = route.query.q
-  if (q) {
-    keyword.value = q
-    fetchResults()
+  if (!q) return
+  keyword.value = q
+  // 从文章详情返回时优先消费快照，决定是否恢复页码与滚动位置
+  const state = takeListState(route.fullPath)
+  if (state && state.page > 1) {
+    currentPage.value = state.page
+  }
+  await fetchResults()
+  if (state && state.scrollY > 0) {
+    // 等搜索结果 DOM 渲染完成后再恢复滚动，避免内容尚未铺开
+    await nextTick()
+    await new Promise(requestAnimationFrame)
+    window.scrollTo({ top: state.scrollY, behavior: 'instant' })
   }
 })
 </script>

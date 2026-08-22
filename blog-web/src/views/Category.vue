@@ -1,10 +1,10 @@
 <template>
   <div class="page-view" id="view-category">
-    <!-- 返回首页：从首页点击分类进入时，返回并恢复点击前的滚动位置 -->
+    <!-- 返回上一页：从任何列表页/文章详情进入，都能回到上一次访问的位置（含页码+滚动位置） -->
     <div class="back-bar">
       <span class="archive-back-btn" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
-        返回首页
+        {{ backLabel }}
       </span>
     </div>
 
@@ -46,7 +46,7 @@
           <div v-if="articles.length === 0" class="list-empty">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
             <p class="list-empty-title">该分类下暂无文章</p>
-            <router-link to="/" class="list-empty-back">返回首页</router-link>
+            <span class="list-empty-back" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack">返回上一页</span>
           </div>
         </div>
 
@@ -78,9 +78,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, watch, onMounted, computed, nextTick } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { getArticleList } from '../api/article'
+import { saveListState, takeListState } from '../composables/useListState'
 import ArticleListSkeleton from '../components/common/ArticleListSkeleton.vue'
 import ErrorState from '../components/common/ErrorState.vue'
 import { formatDate } from '../utils/date'
@@ -98,9 +99,17 @@ const currentPage = ref(1)
 const pageSize = 50
 const totalPage = ref(0)
 
-// 「返回首页」：回到首页；若离开首页前保存过滚动位置，首页会自动恢复
+// 返回按钮文案：来自文章详情/列表页时显示「返回」，直接打开时显示「返回首页」
+const backLabel = computed(() => (router.__prevRouteName ? '返回' : '返回首页'))
+
+// 「返回」按钮：回到来源页；来源列表页/首页会自动恢复滚动位置与页码
 const goBack = () => {
-  router.push('/')
+  const prevName = router.__prevRouteName
+  if (prevName) {
+    router.back()
+  } else {
+    router.push('/')
+  }
 }
 
 const fetchResults = async () => {
@@ -139,6 +148,12 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+// 离开前保存快照（含当前页码），供返回时恢复
+onBeforeRouteLeave((to) => {
+  saveListState(route.fullPath, { page: currentPage.value })
+})
+
+// 路由 param 变化（同页跳转到另一个分类）不消费快照，但要先滚动回顶部
 watch(
   () => route.params.id,
   () => {
@@ -146,11 +161,23 @@ watch(
     categoryName.value = ''
     categoryDescription.value = ''
     fetchResults()
+    window.scrollTo({ top: 0 })
   }
 )
 
-onMounted(() => {
-  fetchResults()
+onMounted(async () => {
+  // 优先恢复快照（从文章详情/其他列表页返回的场景）
+  const state = takeListState(route.fullPath)
+  if (state && state.page > 1) {
+    currentPage.value = state.page
+  }
+  await fetchResults()
+  if (state && state.scrollY > 0) {
+    // 等列表 DOM 渲染完成后，再分两帧恢复滚动，避免内容尚未铺开导致回滚到顶
+    await nextTick()
+    await new Promise(requestAnimationFrame)
+    window.scrollTo({ top: state.scrollY, behavior: 'instant' })
+  }
 })
 </script>
 
@@ -282,6 +309,8 @@ onMounted(() => {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
 }
 .list-empty-back:hover {
   text-decoration: underline;

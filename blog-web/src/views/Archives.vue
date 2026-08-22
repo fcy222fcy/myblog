@@ -34,19 +34,35 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, nextTick } from 'vue'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useArticleStore } from '../stores/article'
+import { saveListState, takeListState } from '../composables/useListState'
 import Loading from '../components/common/Loading.vue'
 import { formatDate } from '../utils/date'
 
 const articleStore = useArticleStore()
+const route = useRoute()
 
 const retryFetch = () => {
   articleStore.fetchArchives()
 }
 
-onMounted(() => {
+// 离开归档页（去往文章详情）时保存滚动位置
+onBeforeRouteLeave(() => {
+  saveListState(route.fullPath, { page: 1 })
+})
+
+onMounted(async () => {
   retryFetch()
+  // 从文章详情返回时恢复滚动位置（归档页无分页）
+  const state = takeListState(route.fullPath)
+  if (state && state.scrollY > 0) {
+    // 等归档列表 DOM 渲染完成后再恢复
+    await nextTick()
+    await new Promise(requestAnimationFrame)
+    window.scrollTo({ top: state.scrollY, behavior: 'instant' })
+  }
 })
 </script>
 
