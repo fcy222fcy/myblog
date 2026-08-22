@@ -1,5 +1,13 @@
 <template>
   <div class="page-view" id="view-category">
+    <!-- 返回首页：从首页点击分类进入时，返回并恢复点击前的滚动位置 -->
+    <div class="back-bar">
+      <span class="archive-back-btn" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+        返回首页
+      </span>
+    </div>
+
     <!-- 骨架屏加载 -->
     <ArticleListSkeleton v-if="loading" />
 
@@ -71,13 +79,14 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getArticleList } from '../api/article'
 import ArticleListSkeleton from '../components/common/ArticleListSkeleton.vue'
 import ErrorState from '../components/common/ErrorState.vue'
 import { formatDate } from '../utils/date'
 
 const route = useRoute()
+const router = useRouter()
 
 const categoryName = ref('')
 const categoryDescription = ref('')
@@ -88,6 +97,11 @@ const total = ref(0)
 const currentPage = ref(1)
 const pageSize = 50
 const totalPage = ref(0)
+
+// 「返回首页」：回到首页；若离开首页前保存过滚动位置，首页会自动恢复
+const goBack = () => {
+  router.push('/')
+}
 
 const fetchResults = async () => {
   const catId = Number(route.params.id)

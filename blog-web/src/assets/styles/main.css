@@ -544,6 +544,37 @@ button, input { font: inherit; }
   cursor: pointer;
 }
 .back-btn:hover { background: #2d2d44; border-color: #555; color: #fff; }
+
+/* ===== 归档页返回按钮（标签/分类） ===== */
+.back-bar {
+  margin-bottom: 16px;
+}
+.archive-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--shadow-l1);
+  color: var(--card-text-color-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.archive-back-btn:hover {
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  background: rgba(var(--accent-color-rgb), 0.06);
+  transform: translateY(-1px);
+}
+.archive-back-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
 .post-detail {
   background: var(--card-background);
   border: 1px solid var(--card-border);

@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { hasScrollMemory } from '../composables/useScrollRestore'
 
 const routes = [
   {
@@ -50,9 +51,13 @@ const router = createRouter({
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
-    } else {
-      return { top: 0 }
     }
+    // 返回首页且存在待恢复的滚动位置：跳过自动滚到顶部，
+    // 由首页在文章数据渲染完成后精确恢复，避免先滚顶再跳回造成闪烁
+    if (to.name === 'Home' && hasScrollMemory()) {
+      return false
+    }
+    return { top: 0 }
   }
 })
 

@@ -72,8 +72,9 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { useArticleStore } from '../stores/article'
+import { saveScrollPosition, takeScrollPosition } from '../composables/useScrollRestore'
 import DailyQuestion from '../components/daily/DailyQuestion.vue'
 import ArticleListSkeleton from '../components/common/ArticleListSkeleton.vue'
 import ErrorState from '../components/common/ErrorState.vue'
@@ -81,9 +82,23 @@ import { formatDate } from '../utils/date'
 
 const articleStore = useArticleStore()
 
-const retryFetch = () => {
-  articleStore.fetchArticles({ page: 1, page_size: 20 })
+const retryFetch = async () => {
+  await articleStore.fetchArticles({ page: 1, page_size: 20 })
+  restoreScrollPosition()
 }
+
+// 返回首页时恢复到离开前的位置（如从标签/分类归档页点「返回首页」返回）
+const restoreScrollPosition = async () => {
+  const y = takeScrollPosition()
+  if (y === null) return
+  await nextTick()
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: y, behavior: 'instant' })
+  })
+}
+
+// 离开首页前记住当前滚动位置，供返回时恢复
+onBeforeUnmount(saveScrollPosition)
 
 // 标签颜色：根据 tag.name 字符串 hash 分配稳定色相（不随主题变化）
 const tagStyle = (tag) => {
