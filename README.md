@@ -15,7 +15,7 @@
 <p align="center">
   🌐 在线体验：<a href="https://blog.fcyan.xyz">blog.fcyan.xyz</a>
   &nbsp;·&nbsp;
-  🚀 从零自研的 <strong>Go + Gin + GORM + Vue 3</strong> 现代化博客系统
+  🚀  <strong>Go + Gin + GORM + Vue 3</strong> 现代化博客系统
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## 📌 项目简介
 
-一个**完全从零自研**的个人博客系统：Go 后端 + Vue 3 双前端（前台展示 / 后台管理），Docker 编排部署，GitHub Actions 多分支 CI/CD 自动发布。支持文章管理、每日一问、评论互动、全文搜索、RSS 订阅等完整博客能力，并具备从 CSDN 等平台**批量迁移历史文章**的实用工具链。
+一个个人博客系统：Go 后端 + Vue 3 双前端（前台展示 / 后台管理），Docker 编排部署，GitHub Actions 多分支 CI/CD 自动发布。支持文章管理、每日一问、评论互动、全文搜索、RSS 订阅等完整博客能力，并具备从 CSDN 等平台**批量迁移历史文章**的实用工具链。
 
 > 本项目是个人技术博客的工程化实践，沉淀了从架构设计、分层实现到自动化部署的全栈经验，欢迎 Star、Fork 与 PR。
 
