@@ -65,8 +65,24 @@
             浏览量 {{ articleStore.currentArticle.view_count }}
           </span>
         </div>
-        <div class="post-content" v-html="renderedContent"></div>
+        <div class="post-content" v-html="renderedContent" @click="onContentClick"></div>
       </article>
+
+      <!-- 图片放大预览（lightbox）：点击正文图片打开，点遮罩/×/Esc 关闭 -->
+      <Teleport to="body">
+        <div
+          v-if="lightbox.visible"
+          class="lightbox-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="图片预览"
+          @click.self="closeLightbox"
+        >
+          <button class="lightbox-close" type="button" aria-label="关闭预览" @click="closeLightbox">✕</button>
+          <img :src="lightbox.src" :alt="lightbox.alt" class="lightbox-img" @click="closeLightbox">
+          <p v-if="lightbox.alt" class="lightbox-caption">{{ lightbox.alt }}</p>
+        </div>
+      </Teleport>
 
       <!-- 评论区 -->
       <div id="comment-section">
@@ -83,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch, onUnmounted } from 'vue'
+import { computed, onMounted, watch, onUnmounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/article'
 import { marked } from 'marked'
@@ -150,6 +166,38 @@ const renderedContent = computed(() => {
   return html
 })
 
+// ==== 正文图片点击放大（lightbox）====
+const lightbox = reactive({ visible: false, src: '', alt: '' })
+
+const normalizeImgSrc = (src) => {
+  if (!src) return ''
+  if (/^(?:https?:)?\/\//i.test(src)) return src
+  return src.startsWith('/') ? src : '/' + src
+}
+
+// 事件委托：点击正文中非链接内的图片时打开预览
+const onContentClick = (e) => {
+  const target = e.target
+  if (!(target instanceof HTMLElement)) return
+  if (target.tagName !== 'IMG') return
+  // 图片外层是链接时保留原跳转行为，不劫持
+  if (target.closest('a')) return
+  const src = normalizeImgSrc(target.getAttribute('src') || '')
+  if (!src) return
+  lightbox.src = src
+  lightbox.alt = target.getAttribute('alt') || ''
+  lightbox.visible = true
+  e.preventDefault()
+}
+
+const closeLightbox = () => {
+  lightbox.visible = false
+}
+
+const onKeydown = (e) => {
+  if (e.key === 'Escape' && lightbox.visible) closeLightbox()
+}
+
 // 计算阅读时长（中文约 400 字/分钟，英文约 200 词/分钟）
 const readingTime = computed(() => {
   if (!articleStore.currentArticle?.content) return 1
@@ -191,11 +239,15 @@ watch(
   { immediate: true }
 )
 
-onMounted(loadArticle)
+onMounted(() => {
+  loadArticle()
+  document.addEventListener('keydown', onKeydown)
+})
 watch(() => route.params.slug, loadArticle)
 
 onUnmounted(() => {
   resetMetaTags()
+  document.removeEventListener('keydown', onKeydown)
 })
 </script>
 
@@ -341,5 +393,61 @@ onUnmounted(() => {
     font-size: 0.8rem;
     font-weight: 600;
   }
+}
+
+/* ==== 正文图片放大预览（lightbox）==== */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px 24px;
+  background: rgba(0, 0, 0, 0.88);
+  cursor: zoom-out;
+  animation: lightboxFadeIn 0.2s ease-out;
+}
+.lightbox-img {
+  max-width: min(92vw, 1400px);
+  max-height: 84vh;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+.lightbox-caption {
+  margin-top: 14px;
+  max-width: 80vw;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.92rem;
+  text-align: center;
+  word-break: break-all;
+}
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: scale(1.05);
+}
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
