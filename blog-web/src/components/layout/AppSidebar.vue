@@ -108,7 +108,7 @@ const userInfo = ref({
   avatar: ''
 })
 
-const siteStartDate = '2024-01-01 00:00:00'
+const siteStartDate = '2026-06-20 00:00:00'
 
 const runtime = reactive({
   days: 0,
