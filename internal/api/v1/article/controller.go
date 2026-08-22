@@ -53,7 +53,7 @@ func (c *Controller) GetArticleDetail(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.articleSvc.GetArticleDetail(slug, ctx.ClientIP())
+	result, err := c.articleSvc.GetArticleDetail(slug)
 	if err != nil {
 		if bizerrors.IsBizError(err) {
 			logger.Warn("获取文章详情业务错误", zap.String("slug", slug), zap.Error(err))

@@ -20,7 +20,7 @@ type ArticleService interface {
 	GetArticleList(req *request.ArticleListRequest) (*response.PageResponse, error)
 
 	// GetArticleDetail 获取文章详情（前台）
-	GetArticleDetail(slug string, clientIP string) (*response.ArticleDetailResponse, error)
+	GetArticleDetail(slug string) (*response.ArticleDetailResponse, error)
 
 	// GetArticleArchives 获取文章归档
 	GetArticleArchives() ([]response.ArchiveResponse, error)

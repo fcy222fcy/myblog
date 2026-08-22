@@ -62,6 +62,7 @@ services:
       - .env
     environment:
       SERVER_PORT: ${SERVER_PORT:-9090}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12,127.0.0.1,::1}
       DB_HOST: mysql
       REDIS_HOST: redis
       APP_INIT_SQL_DIR: /app/scripts

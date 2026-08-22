@@ -31,8 +31,9 @@ type AppConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port        int      `mapstructure:"port"`
-	CORSOrigins []string `mapstructure:"cors_origins"` // 允许的跨域来源，逗号分隔
+	Port           int      `mapstructure:"port"`
+	CORSOrigins    []string `mapstructure:"cors_origins"`    // 允许的跨域来源，逗号分隔
+	TrustedProxies []string `mapstructure:"trusted_proxies"` // 可提供真实客户端 IP 的代理地址或网段
 }
 
 // MySQLConfig 数据库配置
@@ -113,6 +114,7 @@ func Load() (*Config, error) {
 		"http://localhost:5173",
 		"http://localhost:5174",
 	})
+	viper.SetDefault("server.trusted_proxies", []string{"127.0.0.1", "::1"})
 
 	// 读取环境变量
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -141,6 +143,9 @@ func applyEnvOverrides(config *Config) {
 		if origins := parseCSV(value); len(origins) > 0 {
 			config.Server.CORSOrigins = origins
 		}
+	}
+	if value, ok := firstEnv("TRUSTED_PROXIES"); ok {
+		config.Server.TrustedProxies = parseCSV(value)
 	}
 
 	overrideString(&config.MySQL.Host, "DB_HOST", "MYSQL_HOST")

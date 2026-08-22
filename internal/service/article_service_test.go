@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -222,6 +223,27 @@ func TestCalculateReadingTime(t *testing.T) {
 	}
 }
 
+func TestArticleServiceGetDetailDoesNotIncrementViews(t *testing.T) {
+	articleRepo := newMockArticleRepo()
+	article := &entity.Article{
+		Title:     "只读详情",
+		Slug:      "read-only-detail",
+		Status:    entity.ArticleStatusPublished,
+		ViewCount: 6,
+	}
+	require.NoError(t, articleRepo.Create(article))
+	svc := NewArticleService(articleRepo, nil, nil, nil)
+
+	first, err := svc.GetArticleDetail(article.Slug)
+	require.NoError(t, err)
+	second, err := svc.GetArticleDetail(article.Slug)
+	require.NoError(t, err)
+
+	require.Equal(t, int64(6), first.ViewCount)
+	require.Equal(t, int64(6), second.ViewCount)
+	require.Equal(t, int64(6), articleRepo.articles[article.ID].ViewCount)
+}
+
 // generateChineseText 生成指定字数的中文文本
 func generateChineseText(count int) string {
 	text := ""
@@ -234,7 +256,7 @@ func generateChineseText(count int) string {
 // TestArticleService_Create 测试创建文章
 func TestArticleService_Create(t *testing.T) {
 	articleRepo := newMockArticleRepo()
-	svc := NewArticleService(articleRepo, nil, nil, nil, nil)
+	svc := NewArticleService(articleRepo, nil, nil, nil)
 
 	t.Run("成功创建文章", func(t *testing.T) {
 		req := &request.CreateArticleRequest{
@@ -289,7 +311,7 @@ func TestArticleService_Create(t *testing.T) {
 // TestArticleService_Update 测试更新文章
 func TestArticleService_Update(t *testing.T) {
 	articleRepo := newMockArticleRepo()
-	svc := NewArticleService(articleRepo, nil, nil, nil, nil)
+	svc := NewArticleService(articleRepo, nil, nil, nil)
 
 	article := &entity.Article{
 		Title:      "原始标题",
@@ -336,7 +358,7 @@ func TestArticleService_Update(t *testing.T) {
 // TestArticleService_Delete 测试删除文章
 func TestArticleService_Delete(t *testing.T) {
 	articleRepo := newMockArticleRepo()
-	svc := NewArticleService(articleRepo, nil, nil, nil, nil)
+	svc := NewArticleService(articleRepo, nil, nil, nil)
 
 	article := &entity.Article{
 		Title:      "待删除文章",
@@ -362,7 +384,7 @@ func TestArticleService_Delete(t *testing.T) {
 // TestArticleService_BatchDelete 测试批量删除
 func TestArticleService_BatchDelete(t *testing.T) {
 	articleRepo := newMockArticleRepo()
-	svc := NewArticleService(articleRepo, nil, nil, nil, nil)
+	svc := NewArticleService(articleRepo, nil, nil, nil)
 
 	for i := 0; i < 3; i++ {
 		articleRepo.Create(&entity.Article{

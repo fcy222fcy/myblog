@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getArticleList, getArticleDetail, getArchives } from '../api/article'
 import { handleError } from '../utils/errorHandler'
+import { recordContentView } from '../api/view'
 
 export const useArticleStore = defineStore('article', () => {
   const articles = ref([])
@@ -32,6 +33,14 @@ export const useArticleStore = defineStore('article', () => {
     try {
       const res = await getArticleDetail(slug)
       currentArticle.value = res.data
+      try {
+        const viewRes = await recordContentView('article', res.data.id)
+        if (currentArticle.value?.id === res.data.id && viewRes.data) {
+          currentArticle.value.view_count = viewRes.data.view_count
+        }
+      } catch (viewError) {
+        console.warn('记录文章浏览量失败:', viewError)
+      }
     } catch (err) {
       error.value = handleError(err, { showMessage: false })
       console.error('获取文章详情失败:', err)

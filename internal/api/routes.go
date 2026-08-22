@@ -7,6 +7,7 @@ import (
 	"blog/internal/api/v1/auth"
 	"blog/internal/api/v1/category"
 	"blog/internal/api/v1/comment"
+	"blog/internal/api/v1/content_view"
 	"blog/internal/api/v1/daily_question"
 	"blog/internal/api/v1/media"
 	"blog/internal/api/v1/rss"
@@ -44,6 +45,7 @@ type Router struct {
 	tagController           *tag.Controller
 	commentController       *comment.Controller
 	dailyQuestionController *daily_question.Controller
+	contentViewController   *content_view.Controller
 	aboutPageController     *about_page.Controller
 	mediaController         *media.Controller
 	auditLogController      *audit_log.Controller
@@ -51,9 +53,9 @@ type Router struct {
 	sitemapHandler          *sitemap.Handler
 
 	// 仓库（用于仪表盘统计）
-	articleRepo repository.ArticleRepository
-	commentRepo repository.CommentRepository
-	visitRepo   repository.VisitRepository
+	articleRepo    repository.ArticleRepository
+	commentRepo    repository.CommentRepository
+	contentViewSvc service.ContentViewService
 
 	// 审计日志服务（供中间件使用）
 	auditLogSvc service.AuditLogService
@@ -68,14 +70,18 @@ func NewRouter(
 	tagSvc service.TagService,
 	commentSvc service.CommentService,
 	dailyQuestionSvc service.DailyQuestionService,
+	contentViewSvc service.ContentViewService,
 	aboutPageSvc service.AboutPageService,
 	auditLogSvc service.AuditLogService,
 	articleRepo repository.ArticleRepository,
 	commentRepo repository.CommentRepository,
-	visitRepo repository.VisitRepository,
 	config *config.Config,
 ) *Router {
 	engine := gin.Default()
+	if err := configureTrustedProxies(engine, config.Server.TrustedProxies); err != nil {
+		logger.Warn("可信代理配置无效，已禁用代理请求头解析", zap.Error(err))
+		_ = engine.SetTrustedProxies(nil)
+	}
 
 	// 注册自定义验证器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
@@ -96,6 +102,7 @@ func NewRouter(
 		tagController:           tag.NewController(tagSvc),
 		commentController:       comment.NewController(commentSvc),
 		dailyQuestionController: daily_question.NewController(dailyQuestionSvc),
+		contentViewController:   content_view.NewController(contentViewSvc, config.JWT.Secret),
 		aboutPageController:     about_page.NewController(aboutPageSvc),
 		mediaController:         media.NewController(config.App.UploadDir),
 		auditLogController:      audit_log.NewController(auditLogSvc),
@@ -103,9 +110,13 @@ func NewRouter(
 		sitemapHandler:          sitemap.NewHandler(articleRepo),
 		articleRepo:             articleRepo,
 		commentRepo:             commentRepo,
-		visitRepo:               visitRepo,
+		contentViewSvc:          contentViewSvc,
 		auditLogSvc:             auditLogSvc,
 	}
+}
+
+func configureTrustedProxies(engine *gin.Engine, trustedProxies []string) error {
+	return engine.SetTrustedProxies(trustedProxies)
 }
 
 // Setup 设置路由
@@ -139,6 +150,7 @@ func (r *Router) Setup() *gin.Engine {
 	tag.RegisterRoutes(apiV1, r.tagController, r.jwtInstance)
 	comment.RegisterRoutes(apiV1, r.commentController, r.jwtInstance)
 	daily_question.RegisterRoutes(apiV1, r.dailyQuestionController, r.jwtInstance)
+	content_view.RegisterRoutes(apiV1, r.contentViewController)
 	user.RegisterRoutes(apiV1, r.userController, r.jwtInstance)
 	media.RegisterRoutes(apiV1, r.mediaController, r.jwtInstance)
 	audit_log.RegisterRoutes(apiV1, r.auditLogController, r.jwtInstance)
@@ -214,12 +226,9 @@ func (r *Router) getDashboardStats(c *gin.Context) {
 	}
 
 	// 统计今日浏览量
-	var todayViews int64
-	if r.visitRepo != nil {
-		todayViews, err = r.visitRepo.CountTodayViews()
-		if err != nil {
-			logger.Warn("统计今日浏览量失败", zap.Error(err))
-		}
+	todayViews, err := r.contentViewSvc.CountToday(repository.ContentTypeArticle)
+	if err != nil {
+		logger.Warn("统计今日浏览量失败", zap.Error(err))
 	}
 
 	// 统计评论数量

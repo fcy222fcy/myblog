@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { handleError } from '@/utils/errorHandler'
+import { getOrCreateVisitorID } from '@/utils/visitorIdentity'
 
 const request = axios.create({
   baseURL: '/api/v1',
@@ -13,6 +14,10 @@ request.interceptors.request.use(
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    const visitorID = getOrCreateVisitorID(globalThis.localStorage, globalThis.crypto)
+    if (visitorID) {
+      config.headers['X-Visitor-ID'] = visitorID
     }
     return config
   },

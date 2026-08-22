@@ -23,19 +23,15 @@ func NewDailyQuestionService(dailyQuestionRepo repository.DailyQuestionRepositor
 }
 
 // GetAllPublishedQuestions 获取所有已发布问题列表
-func (s *dailyQuestionService) GetAllPublishedQuestions() ([]*response.DailyQuestionBriefResponse, error) {
+func (s *dailyQuestionService) GetAllPublishedQuestions() ([]*response.DailyQuestionResponse, error) {
 	list, err := s.dailyQuestionRepo.GetAllPublished()
 	if err != nil {
 		return nil, fmt.Errorf("获取已发布问题列表失败, %w", err)
 	}
 
-	var result []*response.DailyQuestionBriefResponse
+	result := make([]*response.DailyQuestionResponse, 0, len(list))
 	for _, q := range list {
-		result = append(result, &response.DailyQuestionBriefResponse{
-			ID:       q.ID,
-			Question: q.Question,
-			Date:     q.Date,
-		})
+		result = append(result, s.toResponse(q))
 	}
 	return result, nil
 }
@@ -50,7 +46,6 @@ func (s *dailyQuestionService) GetLatestQuestion() (*response.DailyQuestionRespo
 		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
 	}
 
-	_ = s.dailyQuestionRepo.IncrementViewCount(question.ID)
 	return s.toResponse(question), nil
 }
 
@@ -72,7 +67,6 @@ func (s *dailyQuestionService) GetQuestionByDate(date string) (*response.DailyQu
 		return nil, bizerrors.New(bizerrors.CodeDailyQuestionNotFound, bizerrors.GetMessage(bizerrors.CodeDailyQuestionNotFound))
 	}
 
-	_ = s.dailyQuestionRepo.IncrementViewCount(question.ID)
 	return s.toResponse(question), nil
 }
 

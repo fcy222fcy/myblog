@@ -5,6 +5,7 @@
         <template v-for="(item, index) in allQuestions" :key="item.id">
         <div
           :id="'dq-' + item.date"
+          :data-question-id="item.id"
           class="dq-question-section"
         >
           <h1 class="dq-title">{{ item.question }}</h1>
@@ -40,9 +41,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { getQuestionByDate } from '../api/daily'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { marked } from 'marked'
+import { recordContentView } from '../api/view'
+import { createPageViewRecorder } from '../utils/viewRecorder'
 
 // 配置 marked
 marked.setOptions({
@@ -52,6 +54,8 @@ marked.setOptions({
 
 const allQuestions = ref([])
 const currentDate = ref('')
+const recordPageView = createPageViewRecorder(recordContentView)
+let questionObserver = null
 
 // 渲染 markdown
 const renderMarkdown = (text) => {
@@ -66,11 +70,7 @@ const loadAllQuestions = async () => {
     const briefRes = await getAllPublishedQuestions()
     const briefList = briefRes.data || []
 
-    // 为每个问题加载完整数据（包括答案）
-    const fullPromises = briefList.map(q => getQuestionByDate(q.date).catch(() => ({ data: q })))
-    const fullResults = await Promise.all(fullPromises)
-
-    allQuestions.value = fullResults.map(r => r.data).filter(Boolean)
+    allQuestions.value = briefList
 
     // 设置当前日期为第一个问题
     if (allQuestions.value.length > 0) {
@@ -79,6 +79,34 @@ const loadAllQuestions = async () => {
   } catch (e) {
     console.error(e)
   }
+}
+
+const applyRecordedView = async (questionID) => {
+  try {
+    const result = await recordPageView('daily_question', questionID)
+    if (!result?.data) return
+    const question = allQuestions.value.find(item => item.id === questionID)
+    if (question) question.view_count = result.data.view_count
+  } catch (error) {
+    console.warn('记录每日一问浏览量失败:', error)
+  }
+}
+
+const observeQuestions = () => {
+  const sections = document.querySelectorAll('.dq-question-section[data-question-id]')
+  if (typeof IntersectionObserver === 'undefined') {
+    const firstID = Number(sections[0]?.dataset.questionId || 0)
+    if (firstID) applyRecordedView(firstID)
+    return
+  }
+  questionObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return
+      const questionID = Number(entry.target.dataset.questionId || 0)
+      if (questionID) applyRecordedView(questionID)
+    })
+  }, { threshold: 0.5 })
+  sections.forEach(section => questionObserver.observe(section))
 }
 
 const scrollToDate = (date) => {
@@ -107,11 +135,14 @@ const handleScroll = () => {
 
 onMounted(async () => {
   await loadAllQuestions()
+  await nextTick()
+  observeQuestions()
   window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  questionObserver?.disconnect()
 })
 </script>
 

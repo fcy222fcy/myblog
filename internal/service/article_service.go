@@ -84,7 +84,6 @@ type articleService struct {
 	articleRepo  repository.ArticleRepository
 	categoryRepo repository.CategoryRepository
 	tagRepo      repository.TagRepository
-	visitRepo    repository.VisitRepository
 	redisClient  *redis.Client
 	scheduler    ArticlePublishScheduler
 }
@@ -94,14 +93,12 @@ func NewArticleService(
 	articleRepo repository.ArticleRepository,
 	categoryRepo repository.CategoryRepository,
 	tagRepo repository.TagRepository,
-	visitRepo repository.VisitRepository,
 	redisClient *redis.Client,
 ) ArticleService {
 	return &articleService{
 		articleRepo:  articleRepo,
 		categoryRepo: categoryRepo,
 		tagRepo:      tagRepo,
-		visitRepo:    visitRepo,
 		redisClient:  redisClient,
 	}
 }
@@ -149,12 +146,11 @@ func (s *articleService) GetArticleList(req *request.ArticleListRequest) (*respo
 }
 
 // GetArticleDetail 获取文章详情（前台）
-func (s *articleService) GetArticleDetail(slug string, clientIP string) (*response.ArticleDetailResponse, error) {
+func (s *articleService) GetArticleDetail(slug string) (*response.ArticleDetailResponse, error) {
 	if s.redisClient != nil {
 		cacheKey := fmt.Sprintf("article:detail:%s", slug)
 		var cachedDetail response.ArticleDetailResponse
 		if err := s.redisClient.GetJSON(context.Background(), cacheKey, &cachedDetail); err == nil {
-			go s.incrementViewCountAsync(cachedDetail.ID, clientIP)
 			return &cachedDetail, nil
 		}
 	}
@@ -165,28 +161,6 @@ func (s *articleService) GetArticleDetail(slug string, clientIP string) (*respon
 	}
 	if article == nil {
 		return nil, bizerrors.New(bizerrors.CodeArticleNotFound, bizerrors.GetMessage(bizerrors.CodeArticleNotFound))
-	}
-
-	viewIncremented := false
-	if clientIP != "" && s.visitRepo != nil {
-		since := time.Now().Add(-24 * time.Hour)
-		hasVisited, _ := s.visitRepo.HasVisited(article.ID, clientIP, since)
-		if !hasVisited {
-			_ = s.articleRepo.IncrementViewCount(article.ID)
-			_ = s.visitRepo.Create(&entity.VisitLog{
-				ArticleID: article.ID,
-				IP:        clientIP,
-			})
-			viewIncremented = true
-		}
-	} else {
-		_ = s.articleRepo.IncrementViewCount(article.ID)
-		viewIncremented = true
-	}
-
-	viewCount := article.ViewCount
-	if viewIncremented {
-		viewCount++
 	}
 
 	cats := response.CategoryResponse{}
@@ -209,7 +183,7 @@ func (s *articleService) GetArticleDetail(slug string, clientIP string) (*respon
 		Cover:        article.Cover,
 		Category:     cats,
 		Tags:         tags,
-		ViewCount:    viewCount,
+		ViewCount:    article.ViewCount,
 		CommentCount: article.CommentCount,
 		Status:       article.Status,
 		IsTop:        article.IsTop,
@@ -292,22 +266,6 @@ func (s *articleService) unscheduleArticle(id uint) {
 		return
 	}
 	s.scheduler.UnscheduleArticle(id)
-}
-
-func (s *articleService) incrementViewCountAsync(articleID uint, clientIP string) {
-	if clientIP != "" && s.visitRepo != nil {
-		since := time.Now().Add(-24 * time.Hour)
-		hasVisited, _ := s.visitRepo.HasVisited(articleID, clientIP, since)
-		if !hasVisited {
-			_ = s.articleRepo.IncrementViewCount(articleID)
-			_ = s.visitRepo.Create(&entity.VisitLog{
-				ArticleID: articleID,
-				IP:        clientIP,
-			})
-		}
-	} else {
-		_ = s.articleRepo.IncrementViewCount(articleID)
-	}
 }
 
 // GetArticleArchives 获取文章归档

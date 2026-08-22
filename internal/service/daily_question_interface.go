@@ -11,7 +11,7 @@ type DailyQuestionService interface {
 	GetLatestQuestion() (*response.DailyQuestionResponse, error)
 
 	// GetAllPublishedQuestions 获取所有已发布问题列表
-	GetAllPublishedQuestions() ([]*response.DailyQuestionBriefResponse, error)
+	GetAllPublishedQuestions() ([]*response.DailyQuestionResponse, error)
 
 	// GetQuestionByDate 获取指定日期问题
 	GetQuestionByDate(date string) (*response.DailyQuestionResponse, error)

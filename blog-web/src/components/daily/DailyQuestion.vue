@@ -67,6 +67,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getLatestQuestion, getQuestionByDate, getPreviousQuestion, getNextQuestion, getAllPublishedQuestions } from '../../api/daily'
+import { recordContentView } from '../../api/view'
+import { createPageViewRecorder } from '../../utils/viewRecorder'
 
 const question = ref(null)
 const answerVisible = ref(false)
@@ -78,6 +80,19 @@ const calendarMonth = ref(new Date().getMonth())
 
 // 有每日一问的日期集合（用于日历标亮）
 const questionDates = ref(new Set())
+const recordPageView = createPageViewRecorder(recordContentView)
+
+const recordQuestionView = async (item) => {
+  if (!item?.id) return
+  try {
+    const result = await recordPageView('daily_question', item.id)
+    if (result?.data && question.value?.id === item.id) {
+      question.value.view_count = result.data.view_count
+    }
+  } catch (error) {
+    console.warn('记录每日一问浏览量失败:', error)
+  }
+}
 
 // 拉取所有已发布问题的日期
 const loadQuestionDates = async () => {
@@ -154,6 +169,7 @@ const loadQuestion = async (date) => {
     const res = date ? await getQuestionByDate(date).catch(() => getLatestQuestion()) : await getLatestQuestion()
     if (res.data) {
       question.value = res.data
+      recordQuestionView(res.data)
       answerVisible.value = false
       // 更新日历月份到问题所在月份
       if (res.data.date) {
@@ -210,6 +226,7 @@ const selectDate = async (date) => {
     const res = await getQuestionByDate(date)
     if (res.data) {
       question.value = res.data
+      recordQuestionView(res.data)
       answerVisible.value = false
       await checkNavigation(res.data.date)
     }
@@ -225,6 +242,7 @@ const prevDay = async () => {
       const res = await getPreviousQuestion(question.value.date)
       if (res.data) {
         question.value = res.data
+        recordQuestionView(res.data)
         answerVisible.value = false
         const [y, m] = res.data.date.split('-').map(Number)
         calendarYear.value = y
@@ -243,6 +261,7 @@ const nextDay = async () => {
       const res = await getNextQuestion(question.value.date)
       if (res.data) {
         question.value = res.data
+        recordQuestionView(res.data)
         answerVisible.value = false
         const [y, m] = res.data.date.split('-').map(Number)
         calendarYear.value = y

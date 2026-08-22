@@ -111,19 +111,20 @@ func (a *App) initDependencies() {
 	commentRepo := repository.NewCommentRepository(a.db.DB)
 	dailyQuestionRepo := repository.NewDailyQuestionRepository(a.db.DB)
 	aboutPageRepo := repository.NewAboutPageRepository(a.db.DB)
-	visitRepo := repository.NewVisitRepository(a.db.DB)
+	contentViewRepo := repository.NewContentViewRepository(a.db.DB)
 	auditLogRepo := repository.NewAuditLogRepository(a.db.DB)
 
 	// Service
 	jwtInstance := jwt.NewJWT(a.config.JWT)
 	userSvc := service.NewUserService(userRepo, a.config)
 	authSvc := service.NewAuthService(userRepo, jwtInstance, a.config)
-	articleSvc := service.NewArticleService(articleRepo, categoryRepo, tagRepo, visitRepo, a.redisClient)
+	articleSvc := service.NewArticleService(articleRepo, categoryRepo, tagRepo, a.redisClient)
 	categorySvc := service.NewCategoryService(categoryRepo, a.redisClient)
 	tagSvc := service.NewTagService(tagRepo, a.redisClient)
 	emailSvc := email.NewEmailService(a.config.Email)
 	commentSvc := service.NewCommentService(commentRepo, articleRepo, userRepo, emailSvc, a.config)
 	dailyQuestionSvc := service.NewDailyQuestionService(dailyQuestionRepo)
+	contentViewSvc := service.NewContentViewService(contentViewRepo)
 	aboutPageSvc := service.NewAboutPageService(aboutPageRepo)
 	auditLogSvc := service.NewAuditLogService(auditLogRepo)
 
@@ -149,11 +150,11 @@ func (a *App) initDependencies() {
 		tagSvc,
 		commentSvc,
 		dailyQuestionSvc,
+		contentViewSvc,
 		aboutPageSvc,
 		auditLogSvc,
 		articleRepo,
 		commentRepo,
-		visitRepo,
 		a.config,
 	)
 }
