@@ -15,16 +15,15 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 )
 
-// generateSlug 根据标题生成 URL slug
+// generateSlug 根据标题生成 URL slug（仅保留 ASCII 字母数字，避免中文导致 URL 乱码）
 func generateSlug(title string) string {
 	// 转换为小写
 	slug := strings.ToLower(title)
-	// 移除非字母数字的字符，保留空格和连字符
+	// 只保留 ASCII 小写字母、数字、空格和连字符；中文等非 ASCII 字符全部移除
 	slug = strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ' || r == '-' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' || r == '-' {
 			return r
 		}
 		return -1
@@ -215,6 +214,9 @@ func (s *articleService) GetArticleDetail(slug string, clientIP string) (*respon
 		Status:       article.Status,
 		IsTop:        article.IsTop,
 		ReadingTime:  article.ReadingTime,
+		SEOTitle:     article.SEOTitle,
+		SEODesc:      article.SEODescription,
+		SEOKeywords:  article.SEOKeywords,
 		CreatedAt:    article.CreatedAt,
 		UpdatedAt:    article.UpdatedAt,
 	}

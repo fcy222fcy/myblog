@@ -36,6 +36,9 @@ type ArticleDetailResponse struct {
 	Status       string           `json:"status"`
 	IsTop        bool             `json:"is_top"`
 	ReadingTime  int              `json:"reading_time"`
+	SEOTitle     string           `json:"seo_title"`
+	SEODesc      string           `json:"seo_description"`
+	SEOKeywords  string           `json:"seo_keywords"`
 	CreatedAt    time.Time        `json:"created_at"`
 	UpdatedAt    time.Time        `json:"updated_at"`
 }

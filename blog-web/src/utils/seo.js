@@ -13,23 +13,23 @@ export const updateMetaTags = (article, siteConfig = {}) => {
     siteUrl = window.location.origin
   } = siteConfig
 
-  // 更新标题
+  // 更新标题（优先使用后台配置的 SEO 标题）
   document.title = article?.title
-    ? `${article.title} - ${siteName}`
+    ? `${article?.seo_title || article.title} - ${siteName}`
     : `${siteName} - 记录生活与技术`
 
   const metaTags = [
     {
       name: 'description',
-      content: article?.summary || `${siteName} - 分享技术、生活与思考`
+      content: article?.seo_description || article?.summary || `${siteName} - 分享技术、生活与思考`
     },
     {
       name: 'keywords',
-      content: article?.tags?.map(t => t.name).join(',') || siteName
+      content: article?.seo_keywords || article?.tags?.map(t => t.name).join(',') || siteName
     },
     // Open Graph
-    { property: 'og:title', content: article?.title || siteName },
-    { property: 'og:description', content: article?.summary || siteName },
+    { property: 'og:title', content: article?.seo_title || article?.title || siteName },
+    { property: 'og:description', content: article?.seo_description || article?.summary || siteName },
     { property: 'og:type', content: article ? 'article' : 'website' },
     { property: 'og:site_name', content: siteName },
     { property: 'og:url', content: window.location.href }
