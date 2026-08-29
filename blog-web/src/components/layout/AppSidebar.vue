@@ -1,15 +1,27 @@
 <template>
-  <aside class="left-sidebar" :class="{ open: menuOpen }">
+  <aside
+    id="mobile-navigation-drawer"
+    ref="drawerRef"
+    class="left-sidebar"
+    :class="{ open: menuOpen }"
+    :role="menuOpen ? 'dialog' : undefined"
+    :aria-modal="menuOpen ? 'true' : undefined"
+    :aria-label="menuOpen ? '站点导航' : undefined"
+    @keydown="handleDrawerKeydown"
+  >
+    <button ref="closeButtonRef" class="sidebar-mobile-close" type="button" aria-label="关闭导航菜单" @click="$emit('close-menu')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+    </button>
     <header>
       <figure class="site-avatar">
-        <a href="#/">
-          <img :src="userInfo.avatar || '/avatar.jpg'" class="site-logo" alt="Avatar">
-        </a>
+        <router-link to="/" @click="$emit('close-menu')">
+          <img :src="siteProfile.avatar" class="site-logo" :alt="siteProfile.nickname">
+        </router-link>
         <span class="avatar-badge">🤖</span>
       </figure>
       <div class="site-meta">
-        <h1 class="site-name"><a href="#/">{{ userInfo.nickname || 'Liu Houliang' }}</a></h1>
-        <h2 class="site-description">{{ userInfo.bio || '日常落灰的个人博客，擅长面向搜索引擎编程。分享 Golang 开发、AI 和 NAS 折腾经验' }}</h2>
+        <h1 class="site-name"><router-link to="/" @click="$emit('close-menu')">{{ siteProfile.nickname }}</router-link></h1>
+        <h2 class="site-description">{{ siteProfile.bio }}</h2>
       </div>
     </header>
 
@@ -84,16 +96,49 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../../stores/app'
 
-defineProps({ menuOpen: Boolean })
+const props = defineProps({
+  menuOpen: Boolean,
+  siteProfile: {
+    type: Object,
+    required: true
+  }
+})
 const emit = defineEmits(['close-menu'])
 const appStore = useAppStore()
 const router = useRouter()
+const drawerRef = ref(null)
+const closeButtonRef = ref(null)
 
 const searchKeyword = ref('')
+
+const focusInitial = async () => {
+  await nextTick()
+  closeButtonRef.value?.focus()
+}
+
+const handleDrawerKeydown = (event) => {
+  if (!props.menuOpen || event.key !== 'Tab' || !drawerRef.value) return
+
+  const focusable = [...drawerRef.value.querySelectorAll('a[href], button:not([disabled]), input:not([disabled])')]
+    .filter((element) => element.offsetParent !== null)
+  if (!focusable.length) return
+
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
+defineExpose({ focusInitial })
 
 const handleSearchSubmit = () => {
   const kw = searchKeyword.value.trim()
@@ -101,12 +146,6 @@ const handleSearchSubmit = () => {
   emit('close-menu')
   router.push({ name: 'Search', query: { q: kw } })
 }
-
-const userInfo = ref({
-  nickname: '',
-  bio: '',
-  avatar: ''
-})
 
 const siteStartDate = '2026-06-20 00:00:00'
 
@@ -137,20 +176,7 @@ const calculateRuntime = () => {
   runtime.seconds = pad(seconds)
 }
 
-const fetchUserInfo = async () => {
-  try {
-    const response = await fetch('/api/v1/user/info')
-    const result = await response.json()
-    if (response.ok && result.code === 0 && result.data) {
-      userInfo.value = result.data
-    }
-  } catch (error) {
-    console.log('使用默认用户信息')
-  }
-}
-
 onMounted(() => {
-  fetchUserInfo()
   calculateRuntime()
   runtimeTimer = setInterval(calculateRuntime, 1000)
 })
