@@ -18,6 +18,7 @@
               :to="'/category/' + (article.category?.id || 0)"
               class="category-pill"
               :class="'category-' + (article.category?.slug || 'default')"
+              :style="categoryStyle(article.category)"
               :title="'查看「' + (article.category?.name || '未分类') + '」分类下的文章'"
               @click.stop
             >{{ article.category?.name || '未分类' }}</router-link>
@@ -79,6 +80,7 @@ import DailyQuestion from '../components/daily/DailyQuestion.vue'
 import ArticleListSkeleton from '../components/common/ArticleListSkeleton.vue'
 import ErrorState from '../components/common/ErrorState.vue'
 import { formatDate } from '../utils/date'
+import { categoryStyle } from '../utils/categoryStyle'
 
 const articleStore = useArticleStore()
 
