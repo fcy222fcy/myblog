@@ -598,11 +598,11 @@ h1, h2, h3, p { text-wrap: pretty; }
   font-size: 0.92rem;
 }
 .post-content { color: var(--card-text-color-secondary); font-size: 1.05rem; line-height: 1.85; }
-.post-content h2 { margin: 32px 0 14px; color: var(--card-text-color-main); font-size: 1.35rem; padding-bottom: 8px; border-bottom: 4px solid var(--accent-color); }
-.post-content h3 { margin: 24px 0 10px; color: var(--card-text-color-main); font-size: 1.15rem; }
+.post-content h2 { margin: 32px 0 14px; color: var(--card-text-color-main); font-size: 1.35rem; padding-bottom: 8px; border-bottom: 4px solid var(--accent-color); scroll-margin-top: 24px; }
+.post-content h3 { margin: 24px 0 10px; color: var(--card-text-color-main); font-size: 1.15rem; scroll-margin-top: 24px; }
 .post-content p { margin: 0 0 16px; }
 .post-content code { background: #f2f1eb; color: #24292f; padding: 2px 7px; border-radius: var(--tag-border-radius); font-size: 0.92rem; }
-.post-content pre { background: #272822; color: #f8f8f2; padding: 18px; border-radius: var(--card-border-radius); overflow-x: auto; margin: 16px 0; }
+.post-content pre { background: #0d1117; color: #f8f8f2; padding: 18px; border-radius: var(--card-border-radius); overflow-x: auto; margin: 16px 0; }
 .post-content pre code { background: none; padding: 0; color: inherit; }
 .post-content blockquote { margin: 16px 0; padding: 12px 20px; border-left: 4px solid var(--accent-color); background: #f2f1eb; border-radius: 0 var(--card-border-radius) var(--card-border-radius) 0; }
 .post-content ol,
@@ -611,6 +611,134 @@ h1, h2, h3, p { text-wrap: pretty; }
 .post-content ul { list-style-type: disc; }
 .post-content li { margin: 6px 0; }
 .post-content img { max-width: 100%; border-radius: var(--card-border-radius); }
+
+.post-content .code-block {
+  overflow: hidden;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--card-border-radius);
+  background: #0d1117;
+  box-shadow: var(--shadow-l1);
+}
+
+.post-content .code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #161b22;
+}
+
+.post-content .code-language {
+  color: #aab4c0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.post-content .code-copy-button {
+  min-width: 64px;
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7dee7;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.post-content .code-copy-button:hover,
+.post-content .code-copy-button:focus-visible,
+.post-content .code-copy-button.copied {
+  border-color: var(--accent-color);
+  background: rgba(var(--accent-color-rgb), 0.2);
+  color: #fff;
+}
+
+.post-content .code-copy-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.post-content .code-block pre {
+  margin: 0;
+  padding: 16px 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.post-content .code-block code {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  background: transparent;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.post-content .code-line {
+  position: relative;
+  display: block;
+  min-height: 1.65em;
+  padding: 0 20px 0 62px;
+  white-space: pre;
+}
+
+.post-content .code-line::before {
+  content: attr(data-line);
+  position: absolute;
+  left: 0;
+  width: 46px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #66707d;
+  text-align: right;
+  user-select: none;
+}
+
+.post-content .code-line:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.post-content .article-image-frame {
+  display: grid;
+  place-items: center;
+  min-height: 80px;
+  margin: 22px 0;
+}
+
+.post-content .article-image-frame img {
+  display: block;
+  width: auto;
+  height: auto;
+  cursor: zoom-in;
+}
+
+.post-content .article-image-fallback {
+  display: none;
+  width: 100%;
+  min-height: 150px;
+  margin: 0;
+  padding: 24px;
+  place-items: center;
+  border: 1px dashed var(--card-separator-color);
+  border-radius: var(--card-border-radius);
+  background: rgba(var(--accent-color-rgb), 0.035);
+  color: var(--card-text-color-tertiary);
+  text-align: center;
+}
+
+.post-content .article-image-frame.image-failed img {
+  display: none;
+}
+
+.post-content .article-image-frame.image-failed .article-image-fallback {
+  display: grid;
+}
 
 .post-content .table-wrapper {
   overflow-x: auto;

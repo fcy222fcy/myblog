@@ -10,7 +10,9 @@
 
     <!-- 文章内容 -->
     <template v-else-if="articleStore.currentArticle">
-      <article class="post-detail">
+      <div class="article-reading-layout">
+        <div class="article-primary-column">
+          <article class="post-detail">
         <!-- 全宽封面图：有图才渲染，失败自动隐藏 -->
         <div
           v-if="hasCover(articleStore.currentArticle)"
@@ -65,8 +67,50 @@
             浏览量 {{ articleStore.currentArticle.view_count }}
           </span>
         </div>
-        <div class="post-content" v-html="renderedContent" @click="onContentClick"></div>
-      </article>
+
+            <div
+              ref="postContentRef"
+              class="post-content"
+              v-html="renderedContent"
+              @click="onContentClick"
+              @error.capture="onContentImageError"
+            ></div>
+          </article>
+
+          <!-- 评论区与正文保持同一列 -->
+          <div id="comment-section">
+            <CommentSection ref="commentSectionRef" />
+          </div>
+        </div>
+
+        <aside v-if="toc.length" class="article-toc" aria-label="文章目录">
+          <div class="article-toc-sticky">
+            <div class="article-toc-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="9" x2="19" y2="9"></line>
+                <line x1="5" y1="15" x2="19" y2="15"></line>
+                <line x1="11" y1="4" x2="7" y2="20"></line>
+                <line x1="17" y1="4" x2="13" y2="20"></line>
+              </svg>
+            </div>
+            <h2>目录</h2>
+            <nav class="article-toc-card">
+              <ol>
+                <li
+                  v-for="item in toc"
+                  :key="item.id"
+                  :class="['toc-level-' + item.level, { active: activeHeadingID === item.id }]"
+                >
+                  <a :href="'#' + item.id">
+                    <span class="toc-number" aria-hidden="true">{{ item.number }}</span>
+                    <span>{{ item.text }}</span>
+                  </a>
+                </li>
+              </ol>
+            </nav>
+          </div>
+        </aside>
+      </div>
 
       <!-- 图片放大预览（lightbox）：点击正文图片打开，点遮罩/×/Esc 关闭 -->
       <Teleport to="body">
@@ -84,10 +128,6 @@
         </div>
       </Teleport>
 
-      <!-- 评论区 -->
-      <div id="comment-section">
-        <CommentSection ref="commentSectionRef" />
-      </div>
     </template>
 
     <!-- 文章不存在 -->
@@ -99,15 +139,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch, onUnmounted, reactive } from 'vue'
+import { computed, nextTick, onMounted, watch, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useArticleStore } from '../stores/article'
-import { marked } from 'marked'
 import CommentSection from '../components/comment/CommentSection.vue'
 import ArticleDetailSkeleton from '../components/common/ArticleDetailSkeleton.vue'
 import ErrorState from '../components/common/ErrorState.vue'
 import { updateMetaTags, addStructuredData, resetMetaTags } from '../utils/seo'
 import { formatDate } from '../utils/date'
+import { renderArticleMarkdown } from '../utils/articleEnhancements'
+import 'highlight.js/styles/github-dark.css'
 
 const formatDateTime = (d) => formatDate(d, { withTime: true })
 
@@ -158,13 +199,42 @@ const sanitizeHtml = (html) => {
   return clean
 }
 
+const articleRender = computed(() => renderArticleMarkdown(articleStore.currentArticle?.content || ''))
+const toc = computed(() => articleRender.value.toc)
+
 const renderedContent = computed(() => {
   if (!articleStore.currentArticle?.content) return ''
-  let html = sanitizeHtml(marked(articleStore.currentArticle.content))
+  let html = sanitizeHtml(articleRender.value.html)
   html = html.replace(/<table>/g, '<div class="table-wrapper"><table>')
   html = html.replace(/<\/table>/g, '</table></div>')
   return html
 })
+
+// ==== 文章目录：当前章节随阅读位置更新 ====
+const postContentRef = ref(null)
+const activeHeadingID = ref('')
+let headingObserver = null
+
+const observeHeadings = async () => {
+  if (headingObserver) headingObserver.disconnect()
+  headingObserver = null
+  activeHeadingID.value = toc.value[0]?.id || ''
+
+  await nextTick()
+  if (!postContentRef.value || !toc.value.length || typeof IntersectionObserver === 'undefined') return
+
+  headingObserver = new IntersectionObserver((entries) => {
+    const visible = entries
+      .filter(entry => entry.isIntersecting)
+      .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+    if (visible[0]?.target?.id) activeHeadingID.value = visible[0].target.id
+  }, { rootMargin: '-88px 0px -68% 0px', threshold: [0, 1] })
+
+  toc.value.forEach((item) => {
+    const heading = document.getElementById(item.id)
+    if (heading) headingObserver.observe(heading)
+  })
+}
 
 // ==== 正文图片点击放大（lightbox）====
 const lightbox = reactive({ visible: false, src: '', alt: '' })
@@ -176,9 +246,47 @@ const normalizeImgSrc = (src) => {
 }
 
 // 事件委托：点击正文中非链接内的图片时打开预览
+const copyCode = async (button) => {
+  const code = button.closest('.code-block')?.querySelector('code')
+  if (!code) return
+  const text = [...code.querySelectorAll('.code-line')].map(line => line.textContent || '').join('\n')
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      textarea.remove()
+    }
+    button.textContent = '已复制'
+    button.classList.add('copied')
+  } catch {
+    button.textContent = '复制失败'
+  }
+
+  window.setTimeout(() => {
+    if (!button.isConnected) return
+    button.textContent = '复制'
+    button.classList.remove('copied')
+  }, 1800)
+}
+
 const onContentClick = (e) => {
   const target = e.target
   if (!(target instanceof HTMLElement)) return
+
+  const copyButton = target.closest('[data-copy-code]')
+  if (copyButton) {
+    copyCode(copyButton)
+    return
+  }
+
   if (target.tagName !== 'IMG') return
   // 图片外层是链接时保留原跳转行为，不劫持
   if (target.closest('a')) return
@@ -188,6 +296,13 @@ const onContentClick = (e) => {
   lightbox.alt = target.getAttribute('alt') || ''
   lightbox.visible = true
   e.preventDefault()
+}
+
+const onContentImageError = (e) => {
+  const image = e.target
+  if (!(image instanceof HTMLImageElement)) return
+  const frame = image.closest('.article-image-frame')
+  if (frame) frame.classList.add('image-failed')
 }
 
 const closeLightbox = () => {
@@ -234,6 +349,7 @@ watch(
     if (article) {
       updateMetaTags(article)
       addStructuredData(article)
+      observeHeadings()
     }
   },
   { immediate: true }
@@ -248,6 +364,7 @@ watch(() => route.params.slug, loadArticle)
 onUnmounted(() => {
   resetMetaTags()
   document.removeEventListener('keydown', onKeydown)
+  if (headingObserver) headingObserver.disconnect()
 })
 </script>
 
@@ -333,6 +450,112 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+.article-reading-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 374px);
+  align-items: start;
+  gap: 30px;
+  width: calc(100% + 48px);
+}
+
+.article-primary-column {
+  min-width: 0;
+}
+
+.article-toc {
+  min-width: 0;
+  align-self: stretch;
+}
+
+.article-toc-sticky {
+  position: sticky;
+  top: 40px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 0 4px 12px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-color-rgb), 0.25) transparent;
+}
+
+.article-toc-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--card-text-color-main);
+}
+
+.article-toc-icon svg {
+  display: block;
+  width: 36px;
+  height: 36px;
+}
+
+.article-toc h2 {
+  margin: 0 0 10px;
+  color: var(--card-text-color-main);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.article-toc-card {
+  overflow: hidden;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--card-separator-color);
+  border-radius: 10px;
+  background: var(--card-background);
+  box-shadow: var(--shadow-l1);
+}
+
+.article-toc-card ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-toc li {
+  margin: 15px 0;
+  line-height: 1.2;
+}
+
+.article-toc li:first-child {
+  margin-top: 5px;
+}
+
+.article-toc li:last-child {
+  margin-bottom: 5px;
+}
+
+.article-toc .toc-level-3 {
+  margin-left: 35px;
+}
+
+.article-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px;
+  color: var(--accent-color);
+  font-size: 1rem;
+  text-decoration: none;
+  text-wrap: pretty;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.article-toc .toc-number {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.article-toc a:hover {
+  color: var(--card-text-color-main);
+  transform: translateX(2px);
+}
+
+.article-toc li.active a {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -350,6 +573,16 @@ onUnmounted(() => {
 
 .back-home-link:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 1280px) {
+  .article-reading-layout {
+    display: block;
+    width: 100%;
+  }
+  .article-toc {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
