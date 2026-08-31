@@ -610,7 +610,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 .post-content ol { list-style-type: decimal; }
 .post-content ul { list-style-type: disc; }
 .post-content li { margin: 6px 0; }
-.post-content img { max-width: 100%; border-radius: var(--card-border-radius); }
+.post-content img { max-width: 100%; border-radius: var(--card-border-radius); cursor: zoom-in; transition: filter 0.15s ease; }
+.post-content img:hover { filter: brightness(0.97); }
 
 .post-content .code-block {
   overflow: hidden;

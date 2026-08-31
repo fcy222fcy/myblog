@@ -13,10 +13,15 @@
       <div class="article-reading-layout">
         <div class="article-primary-column">
           <article class="post-detail">
-        <!-- 全宽封面图：有图才渲染，失败自动隐藏 -->
+        <!-- 全宽封面图：有图才渲染，失败自动隐藏；点击可放大预览 -->
         <div
           v-if="hasCover(articleStore.currentArticle)"
           class="post-cover-wrap"
+          role="button"
+          tabindex="0"
+          :aria-label="'查看封面大图：' + articleStore.currentArticle.title"
+          @click="openCoverLightbox"
+          @keydown.enter.prevent="openCoverLightbox"
         >
           <img
             :src="resolveCover(articleStore.currentArticle.cover)"
@@ -24,6 +29,9 @@
             class="post-cover-img"
             @error="onCoverError"
           >
+          <span class="cover-zoom-hint" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </span>
         </div>
 
         <!-- 分类 + 标签：同一行横着排，# 前缀 + 主页胶囊尺寸 -->
@@ -309,6 +317,16 @@ const closeLightbox = () => {
   lightbox.visible = false
 }
 
+// 封面图点击放大：复用同一 lightbox；封面在卡片里被 object-fit:cover 裁切，
+// 放大后 object-fit:contain 显示完整大图
+const openCoverLightbox = () => {
+  const article = articleStore.currentArticle
+  if (!hasCover(article)) return
+  lightbox.src = resolveCover(article.cover)
+  lightbox.alt = article.title || ''
+  lightbox.visible = true
+}
+
 const onKeydown = (e) => {
   if (e.key === 'Escape' && lightbox.visible) closeLightbox()
 }
@@ -373,6 +391,7 @@ onUnmounted(() => {
 
 /* ==== 详情页新增：全宽封面图 ==== */
 .post-cover-wrap {
+  position: relative;
   width: 100%;
   max-height: 360px;
   margin: 0 0 28px;
@@ -380,6 +399,15 @@ onUnmounted(() => {
   overflow: hidden;
   background: linear-gradient(135deg, rgba(var(--accent-color-rgb), 0.12), rgba(var(--accent-color-rgb), 0.04));
   box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.1);
+  cursor: zoom-in;
+  transition: box-shadow 0.2s ease;
+}
+.post-cover-wrap:hover {
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.18);
+}
+.post-cover-wrap:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
 }
 .post-cover-img {
   width: 100%;
@@ -387,6 +415,33 @@ onUnmounted(() => {
   max-height: 360px;
   object-fit: cover;
   display: block;
+  transition: transform 0.3s ease;
+}
+.post-cover-wrap:hover .post-cover-img {
+  transform: scale(1.03);
+}
+/* 封面「可放大」提示图标，悬停时浮现 */
+.cover-zoom-hint {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.post-cover-wrap:hover .cover-zoom-hint,
+.post-cover-wrap:focus-visible .cover-zoom-hint {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ==== 详情页：分类+标签 同一行横排，尺寸对齐主页 category-pill ==== */
