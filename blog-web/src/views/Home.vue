@@ -33,7 +33,7 @@
             >#{{ t.name }}</router-link>
           </div>
           <h2>{{ article.title }}</h2>
-          <p>{{ displaySummary(article) }}</p>
+          <p class="article-summary">{{ displaySummary(article) }}</p>
           <dl class="article-meta">
             <div>
               <dt>日期</dt>
@@ -170,6 +170,13 @@ onMounted(() => {
 .card-pills-row .category-pill:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
+}
+.article-summary {
+  display: -webkit-box;
+  height: 4.95em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 .empty {
   text-align: center;
