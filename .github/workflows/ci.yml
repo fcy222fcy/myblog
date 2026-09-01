@@ -128,6 +128,14 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v7
 
+      - name: 配置 Node 环境
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: 测试发布工作流
+        run: node --test .github/workflows/release-deploy.test.mjs
+
       - name: 测试部署脚本
         run: sh deploy/deploy_test.sh
 
