@@ -51,10 +51,10 @@ func (s *aboutPageService) GetAboutPage() (*request.AboutPageResponse, error) {
 			Subtitle:    "Go 开发者 / 独立游戏开发者",
 			Bio:         "来自中国的程序员，擅长游戏和后端开发，喜欢玩游戏和骑自行车。",
 			Skills:      `["Golang","Erlang","Unity","Docker"]`,
-			AboutMe:     `[{"label":"职业","value":"Go 开发者","icon":"💼"},{"label":"爱好","value":"游戏 / 骑行","icon":"🎮"},{"label":"技术栈","value":"Go / Erlang / Unity","icon":"🛠"},{"label":"邮箱","value":"admin@liuhouliang.com","icon":"✉️"}]`,
+			AboutMe:     `[{"label":"职业","value":"Go 开发者","icon":"💼"},{"label":"爱好","value":"游戏 / 骑行","icon":"🎮"},{"label":"技术栈","value":"Go / Erlang / Unity","icon":"🛠"},{"label":"邮箱","value":"3181088318@qq.com","icon":"✉️"}]`,
 			AboutSite:   `[{"label":"框架","value":"Go + Gin","icon":"⚙️"},{"label":"前端","value":"Vue 3","icon":"🎨"},{"label":"部署","value":"Docker","icon":"☁️"}]`,
-			Projects:    `[{"name":"GitHub","description":"我的 GitHub 主页，包含各种编程项目。","url":"https://github.com/liu-houliang","icon":"⌘"},{"name":"DesktopSnap","description":"Windows 桌面图标保存和恢复工具。","url":"https://desktopsnap.liuhouliang.com/","icon":"🖥"}]`,
-			ContactInfo: `[{"label":"GitHub","value":"liu-houliang","icon":"🐙","url":"https://github.com/liu-houliang"}]`,
+			Projects:    `[{"name":"GitHub","description":"我的 GitHub 主页，包含各种编程项目。","url":"https://github.com/fcy222fcy","icon":"⌘"},{"name":"DesktopSnap","description":"Windows 桌面图标保存和恢复工具。","url":"https://desktopsnap.fcyan.xyz/","icon":"🖥"}]`,
+			ContactInfo: `[{"label":"GitHub","value":"fcy222fcy","icon":"🐙","url":"https://github.com/fcy222fcy"}]`,
 			SiteHistory: `[]`,
 		}, nil
 	}

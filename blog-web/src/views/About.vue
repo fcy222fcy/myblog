@@ -19,6 +19,10 @@
         <span>你好，我是</span>
         <h1>{{ aboutData.title || '关于我' }}</h1>
         <p class="about-role">{{ aboutData.subtitle }}</p>
+        <div class="about-typing">
+          <code class="about-typing-prompt">$</code>
+          <TypingText :lines="typingLines" align="center" size="clamp(0.98rem, 1.9vw, 1.15rem)" />
+        </div>
         <p class="about-bio">{{ aboutData.bio }}</p>
         <div class="skill-tags">
           <span v-for="skill in skills" :key="skill" class="tag">{{ skill }}</span>
@@ -96,6 +100,16 @@ import { getAboutPage } from '../api/about'
 import { handleError } from '../utils/errorHandler'
 import { parseProjects, parseSkills } from '../utils/aboutData'
 import Loading from '../components/common/Loading.vue'
+import TypingText from '../components/common/TypingText.vue'
+
+// 打字机文案：与 GitHub 主页 readme-typing-svg 保持一致
+const typingLines = [
+  "Hi, I'm fcyan 👋",
+  'Go Backend Developer',
+  'AI Agent & RAG Developer',
+  'Building reliable backend systems',
+  '写点代码 · 记录点想法'
+]
 
 const loading = ref(false)
 const error = ref(null)
@@ -269,10 +283,12 @@ const fetchAbout = async () => {
       } catch (e) { siteHistory.value = [] }
     }
   } catch (e) {
-    error.value = handleError(e, { showMessage: false })
-    // 使用默认数据
+    // 接口不可用时降级为本地默认数据（下方已准备全量兜底内容），
+    // 若在此处设置 error，模板的 v-else-if="error" 会直接吞掉整个页面内容
+    console.warn('[About] 接口加载失败，已降级为默认数据：', handleError(e, { showMessage: false }))
+    error.value = null
     aboutData.value = {
-      title: 'Liu Houliang',
+      title: 'Fu Chengyan',
       subtitle: '后端开发者 / 独立开发者 / 游戏爱好者',
       bio: '来自中国的全栈开发者，专注于 Go 语言后端服务与 Windows 桌面软件开发，同时在业余时间进行独立游戏开发探索。日常喜欢写博客记录技术踩坑经验、分享开发心得，周末热爱户外骑行放松身心，用代码构建可靠的系统，用文字记录成长的点滴。'
     }
@@ -308,7 +324,7 @@ const fetchAbout = async () => {
       { date: '2021-01', content: '跟随 Vue 3 正式版发布，将博客升级到 VuePress 2.0，体验 Composition API 与 Vite 带来的开发效率提升' },
       { date: '2020-05', content: '开始坚持记录 LeetCode 每日一题，手写题解与 Go 语言代码，累计完成 500+ 道算法题，形成系统的算法知识体系' },
       { date: '2019-11', content: '第一版个人博客正式上线，基于 VuePress 1.x 构建，初始仅有 10 篇左右的读书笔记与 Vue 入门文章' },
-      { date: '2019-10', content: '在阿里云购买了 liuhouliang.com 域名，正式开启独立个人博客之路，迈出了在互联网上留下个人痕迹的第一步' }
+      { date: '2019-10', content: '在阿里云购买了 fcyan.xyz 域名，正式开启独立个人博客之路，迈出了在互联网上留下个人痕迹的第一步' }
     ]
   } finally {
     loading.value = false

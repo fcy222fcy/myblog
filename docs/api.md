@@ -168,7 +168,7 @@ GET /user/info
   "message": "success",
   "data": {
     "id": 1,
-    "nickname": "Liu Houliang",
+    "nickname": "Fu Chengyan",
     "avatar": "https://example.com/avatar.jpg",
     "email": "admin@example.com",
     "description": "Go 开发者",
@@ -203,7 +203,7 @@ Authorization: Bearer <token>
   "data": {
     "id": 1,
     "username": "admin",
-    "nickname": "Liu Houliang",
+    "nickname": "Fu Chengyan",
     "avatar": "https://example.com/avatar.jpg",
     "email": "admin@example.com",
     "description": "Go 开发者",

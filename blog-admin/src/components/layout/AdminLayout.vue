@@ -143,7 +143,7 @@ const passwordTip = ref('')
 const passwordTipIsError = ref(false)
 
 const userInfo = ref({
-  nickname: 'Liu Houliang',
+  nickname: 'Fu Chengyan',
   bio: '日常落灰的个人博客，分享 Golang、AI 和 NAS 折腾经验',
   avatar: '',
   email: '',

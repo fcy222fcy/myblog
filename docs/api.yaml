@@ -4,8 +4,8 @@ info:
   description: 个人博客系统后端接口文档
   version: 1.0.0
   contact:
-    name: Liu Houliang
-    email: admin@liuhouliang.com
+    name: Fu Chengyan
+    email: 3181088318@qq.com
 
 servers:
   - url: http://localhost:8080/api/v1

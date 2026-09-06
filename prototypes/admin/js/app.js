@@ -8,7 +8,7 @@
 
         // 默认用户信息
         const defaultProfile = {
-            username: 'Liu Houliang',
+            username: 'Fu Chengyan',
             desc: '日常落灰的个人博客，擅长面向搜索引擎编程。分享 Golang 开发、AI 和 NAS 折腾经验',
             avatar: null,
             social: [
@@ -25,7 +25,7 @@
                 id: 1,
                 title: '我的博客主题已开源，欢迎使用',
                 summary: '基于 Hugo Theme Stack 打造的开箱即用博客模板，包含多项美化和功能增强，欢迎star和反馈。',
-                content: '## 引言\n\n基于 Hugo Theme Stack 打造的开箱即用博客模板，包含多项美化和功能增强。如果你喜欢我的博客样式，不妨试试它！\n\n## 功能特性\n\n- **响应式设计**：完美适配桌面端和移动端\n- **暗色模式**：支持亮色/暗色主题自动切换\n- **多语言支持**：内置中英文切换功能\n- **代码高亮**：支持多种编程语言的代码块高亮显示\n- **图片懒加载**：优化页面加载速度\n\n## 快速开始\n\n```bash\n# 克隆仓库\ngit clone https://github.com/liu-houliang/hugo-stack-starter.git\n\n# 进入目录\ncd hugo-stack-starter\n\n# 启动本地服务\nhugo server\n```\n\n## 自定义配置\n\n在 `config.yaml` 中修改你的博客信息：\n\n```yaml\ntitle: 你的博客标题\nparams:\n  description: 博客描述\n  author: 作者名\n```\n\n## 预览效果\n\n访问 [在线演示](https://blog.liuhouliang.com) 查看实际效果。\n\n## 许可证\n\n本项目采用 MIT 许可证开源，欢迎自由使用和修改。',
+                content: '## 引言\n\n基于 Hugo Theme Stack 打造的开箱即用博客模板，包含多项美化和功能增强。如果你喜欢我的博客样式，不妨试试它！\n\n## 功能特性\n\n- **响应式设计**：完美适配桌面端和移动端\n- **暗色模式**：支持亮色/暗色主题自动切换\n- **多语言支持**：内置中英文切换功能\n- **代码高亮**：支持多种编程语言的代码块高亮显示\n- **图片懒加载**：优化页面加载速度\n\n## 快速开始\n\n```bash\n# 克隆仓库\ngit clone https://github.com/fcy222fcy/hugo-stack-starter.git\n\n# 进入目录\ncd hugo-stack-starter\n\n# 启动本地服务\nhugo server\n```\n\n## 自定义配置\n\n在 `config.yaml` 中修改你的博客信息：\n\n```yaml\ntitle: 你的博客标题\nparams:\n  description: 博客描述\n  author: 作者名\n```\n\n## 预览效果\n\n访问 [在线演示](https://blog.fcyan.xyz) 查看实际效果。\n\n## 许可证\n\n本项目采用 MIT 许可证开源，欢迎自由使用和修改。',
                 category: '搭建网站',
                 tags: ['Hugo', '开源', '博客'],
                 status: 'published',
@@ -117,9 +117,9 @@
 
         // 默认系统设置
         const defaultSettings = {
-            siteName: 'Liu Houliang\'s Blog',
+            siteName: 'Fu Chengyan\'s Blog',
             siteDesc: '日常落灰的个人博客，分享 Golang、AI 和 NAS 折腾经验',
-            siteUrl: 'https://liuhouliang.com',
+            siteUrl: 'https://fcyan.xyz',
             pageSize: 10,
             seoTitle: '',
             seoDesc: '',

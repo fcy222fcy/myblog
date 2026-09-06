@@ -489,6 +489,27 @@ h1, h2, h3, p { text-wrap: pretty; }
 .about-hero > span { color: var(--card-text-color-secondary); font-size: 1.1rem; }
 .about-hero h1 { margin: 8px 0; color: var(--accent-color); font-size: 2rem; }
 .about-role { margin: 0 0 12px; color: var(--card-text-color-main); font-size: 1.15rem; font-weight: 600; }
+/* 打字机签名行：终端风格，与 TypingText 组件配套 */
+.about-typing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 18px;
+  padding: 10px 16px;
+  max-width: 620px;
+  background: var(--code-background-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--tag-border-radius);
+}
+.about-typing-prompt {
+  flex: none;
+  color: var(--card-text-color-tertiary);
+  font-family: ui-monospace, SFMono-Regular, "Fira Code", Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  user-select: none;
+}
+.about-typing .typing { flex: 1 1 auto; min-width: 0; }
 .about-bio { margin: 0 auto 20px; color: var(--card-text-color-secondary); max-width: 600px; }
 .skill-tags { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .tag {

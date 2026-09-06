@@ -28,7 +28,7 @@ func (c *Controller) GetPublicUserInfo(ctx *gin.Context) {
 	if err != nil || user == nil {
 		// 返回默认信息
 		response.Success(ctx, gin.H{
-			"nickname": "Liu Houliang",
+			"nickname": "Fu Chengyan",
 			"bio":      "日常落灰的个人博客，擅长面向搜索引擎编程。分享 Golang 开发、AI 和 NAS 折腾经验",
 			"avatar":   "",
 		})
