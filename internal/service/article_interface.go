@@ -37,6 +37,9 @@ type ArticleService interface {
 	// UpdateArticle 更新文章
 	UpdateArticle(id uint, req *request.UpdateArticleRequest) error
 
+	// UpdateArticleStatus 更新文章状态（列表页快捷切换）
+	UpdateArticleStatus(id uint, status string) error
+
 	// DeleteArticle 删除文章
 	DeleteArticle(id uint) error
 

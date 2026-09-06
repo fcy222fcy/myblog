@@ -45,6 +45,7 @@ func registerAdminRoutes(rg *gin.RouterGroup, controller *Controller) {
 		admin.GET("/:id", controller.GetAdminArticleDetail)
 		admin.POST("", controller.CreateArticle)
 		admin.PUT("/:id", controller.UpdateArticle)
+		admin.PUT("/:id/status", controller.UpdateArticleStatus)
 		admin.DELETE("/:id", controller.DeleteArticle)
 		admin.POST("/batch-delete", controller.BatchDeleteArticles)
 	}

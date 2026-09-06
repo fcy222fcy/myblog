@@ -184,6 +184,35 @@ func (c *Controller) UpdateArticle(ctx *gin.Context) {
 	response.Success(ctx, nil)
 }
 
+// UpdateArticleStatus 更新文章状态（列表页快捷切换）
+func (c *Controller) UpdateArticleStatus(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil || id == 0 {
+		response.BadRequest(ctx, "无效的文章ID")
+		return
+	}
+
+	var req request.UpdateArticleStatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, "参数错误")
+		return
+	}
+
+	err = c.articleSvc.UpdateArticleStatus(uint(id), req.Status)
+	if err != nil {
+		if bizerrors.IsBizError(err) {
+			logger.Warn("更新文章状态业务错误", zap.Uint64("id", id), zap.String("status", req.Status), zap.Error(err))
+			response.BizError(ctx, err)
+		} else {
+			logger.Error("更新文章状态失败", zap.Uint64("id", id), zap.String("status", req.Status), zap.Error(err))
+			response.ServerError(ctx, "服务器内部错误")
+		}
+		return
+	}
+
+	response.Success(ctx, nil)
+}
+
 // DeleteArticle 删除文章
 func (c *Controller) DeleteArticle(ctx *gin.Context) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)

@@ -496,6 +496,43 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 	return nil
 }
 
+// UpdateArticleStatus 更新文章状态（列表页快捷切换）
+func (s *articleService) UpdateArticleStatus(id uint, status string) error {
+	article, err := s.articleRepo.FindByID(id)
+	if err != nil {
+		return fmt.Errorf("查询文章失败, %w", err)
+	}
+	if article == nil {
+		return bizerrors.New(bizerrors.CodeArticleNotFound, bizerrors.GetMessage(bizerrors.CodeArticleNotFound))
+	}
+	if article.Status == status {
+		return nil
+	}
+
+	// 定时发布必须已有发布时间，否则任务永远不会触发，提示去编辑页设置
+	if status == entity.ArticleStatusScheduled && article.ScheduledAt == nil {
+		return bizerrors.New(bizerrors.CodeInvalidParams, "请先在编辑页设置发布时间，再切换为定时发布")
+	}
+
+	// 从定时发布切走时清掉 ScheduledAt，避免残留误导后续操作
+	if article.Status == entity.ArticleStatusScheduled && status != entity.ArticleStatusScheduled {
+		article.ScheduledAt = nil
+	}
+
+	article.Status = status
+
+	if err := s.articleRepo.Update(article); err != nil {
+		return fmt.Errorf("更新文章状态失败, %w", err)
+	}
+
+	logger.Infof("文章状态切换成功, id: %d, status: %s", id, status)
+
+	s.invalidateArticleCache(article.Slug)
+	s.refreshArticleSchedule(article)
+
+	return nil
+}
+
 // DeleteArticle 删除文章
 func (s *articleService) DeleteArticle(id uint) error {
 	article, err := s.articleRepo.FindByID(id)

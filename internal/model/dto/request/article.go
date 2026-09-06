@@ -30,6 +30,11 @@ type CreateArticleRequest struct {
 	SEOKeywords    string     `json:"seo_keywords" binding:"max=300"`
 }
 
+// UpdateArticleStatusRequest 更新文章状态请求（列表页快捷切换）
+type UpdateArticleStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=published draft scheduled"`
+}
+
 // UpdateArticleRequest 更新文章请求
 type UpdateArticleRequest struct {
 	Title          string     `json:"title" binding:"min=1,max=200"`
