@@ -68,9 +68,25 @@
           <div class="article-card-info">
             <div class="article-card-header">
               <h3 class="article-card-title">{{ article.title }}</h3>
-              <span class="status-badge" :class="'status-' + article.status">
-                {{ statusLabel(article.status) }}
-              </span>
+              <div class="status-menu-wrap" @click.stop>
+                <span class="status-badge status-badge-btn" :class="'status-' + article.status" title="点击切换文章状态" @click="toggleStatusMenu(article.id)">
+                  {{ statusLabel(article.status) }}
+                  <svg class="status-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+                <div v-if="activeStatusMenuId === article.id" class="status-menu">
+                  <div
+                    v-for="opt in statusOptions"
+                    :key="opt.value"
+                    class="status-menu-item"
+                    :class="{ 'is-current': opt.value === article.status }"
+                    @click="changeArticleStatus(article, opt.value)"
+                  >
+                    <span class="status-dot" :class="'dot-' + opt.value"></span>
+                    <span>{{ opt.label }}</span>
+                    <svg v-if="opt.value === article.status" class="status-check" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                </div>
+              </div>
             </div>
             <p class="article-card-summary">{{ article.summary || '暂无摘要' }}</p>
             <div class="article-card-footer">
@@ -126,8 +142,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { getArticleList, deleteArticle } from '../../api/article'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getArticleList, deleteArticle, updateArticleStatus } from '../../api/article'
 import request from '../../api/request'
 import { getCategoryList } from '../../api/category'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -168,6 +184,41 @@ const categoryOptions = computed(() => {
 })
 
 const isStatusOpen = ref(false)
+
+// 状态快捷切换：当前展开状态菜单的文章 id
+const activeStatusMenuId = ref(null)
+// 徽标菜单可选项（published/draft/scheduled 与后端枚举一致）
+const statusOptions = [
+  { value: 'published', label: '已发布' },
+  { value: 'draft', label: '草稿' },
+  { value: 'scheduled', label: '定时发布' }
+]
+
+const toggleStatusMenu = (id) => {
+  activeStatusMenuId.value = activeStatusMenuId.value === id ? null : id
+}
+
+const closeStatusMenu = () => {
+  activeStatusMenuId.value = null
+}
+
+// 切换文章状态：若目标与当前一致则直接收起；否则调用接口后刷新列表与统计
+const changeArticleStatus = async (article, status) => {
+  if (article.status === status) {
+    closeStatusMenu()
+    return
+  }
+  try {
+    await updateArticleStatus(article.id, status)
+    ElMessage.success(`已切换为「${statusLabel(status)}」`)
+    loadArticles()
+    loadStats()
+  } catch (e) {
+    if (e !== 'cancel') console.error(e)
+  } finally {
+    closeStatusMenu()
+  }
+}
 
 const selectedStatusLabel = computed(() => {
   const map = { '': '全部状态', 'published': '已发布', 'draft': '草稿', 'scheduled': '定时发布' }
@@ -256,6 +307,10 @@ onMounted(async () => {
   await loadArticles()
   loading.value = false
 })
+
+// 点击状态徽标以外的任意位置时收起状态菜单（徽标/菜单项内部已 @click.stop，不会误关）
+onMounted(() => document.addEventListener('click', closeStatusMenu))
+onUnmounted(() => document.removeEventListener('click', closeStatusMenu))
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -489,5 +544,70 @@ const vClickOutside = {
 .article-card-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 状态快捷切换 */
+.status-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.status-badge-btn {
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.15s ease;
+}
+.status-badge-btn:hover {
+  filter: brightness(0.92);
+}
+.status-badge-btn .status-chevron {
+  opacity: 0.65;
+  margin-left: 2px;
+}
+.status-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 136px;
+  padding: 4px;
+  background: var(--card-background);
+  border: 1px solid var(--card-separator-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 200;
+}
+.status-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--card-text-color-main);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.status-menu-item:hover {
+  background: rgba(var(--accent-color-rgb), 0.06);
+  color: var(--accent-color);
+}
+.status-menu-item.is-current {
+  background: rgba(var(--accent-color-rgb), 0.1);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.dot-published { background: #059669; }
+.status-dot.dot-draft { background: #d97706; }
+.status-dot.dot-scheduled { background: #2563eb; }
+.status-check {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 </style>
