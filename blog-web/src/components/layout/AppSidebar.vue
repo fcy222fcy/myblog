@@ -17,7 +17,6 @@
         <router-link to="/" @click="$emit('close-menu')">
           <img :src="siteProfile.avatar" class="site-logo" :alt="siteProfile.nickname">
         </router-link>
-        <span class="avatar-badge">🤖</span>
       </figure>
       <div class="site-meta">
         <h1 class="site-name"><router-link to="/" @click="$emit('close-menu')">{{ siteProfile.nickname }}</router-link></h1>
