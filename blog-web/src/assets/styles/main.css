@@ -605,14 +605,15 @@ h1, h2, h3, p { text-wrap: pretty; }
   color: var(--card-text-color-tertiary);
   font-size: 0.92rem;
 }
-.post-content { color: var(--card-text-color-secondary); font-size: 1.05rem; line-height: 1.85; }
+.post-content { color: var(--card-text-color-secondary); font-size: 1.05rem; line-height: 1.85; overflow-wrap: anywhere; }
+.post-content a { overflow-wrap: anywhere; word-break: break-word; }
 .post-content h2 { margin: 32px 0 14px; color: var(--card-text-color-main); font-size: 1.35rem; padding-bottom: 8px; border-bottom: 4px solid var(--accent-color); scroll-margin-top: 24px; }
 .post-content h3 { margin: 24px 0 10px; color: var(--card-text-color-main); font-size: 1.15rem; scroll-margin-top: 24px; }
 .post-content p { margin: 0 0 16px; }
-.post-content code { background: #f2f1eb; color: #24292f; padding: 2px 7px; border-radius: var(--tag-border-radius); font-size: 0.92rem; }
+.post-content code { background: var(--code-background-color); color: var(--code-text-color); padding: 2px 7px; border-radius: var(--tag-border-radius); font-size: 0.92rem; }
 .post-content pre { background: #0d1117; color: #f8f8f2; padding: 18px; border-radius: var(--card-border-radius); overflow-x: auto; margin: 16px 0; }
 .post-content pre code { background: none; padding: 0; color: inherit; }
-.post-content blockquote { margin: 16px 0; padding: 12px 20px; border-left: 4px solid var(--accent-color); background: #f2f1eb; border-radius: 0 var(--card-border-radius) var(--card-border-radius) 0; }
+.post-content blockquote { margin: 16px 0; padding: 12px 20px; border-left: 4px solid var(--accent-color); background: var(--blockquote-background-color); border-radius: 0 var(--card-border-radius) var(--card-border-radius) 0; }
 .post-content ol,
 .post-content ul { padding-left: 1.8em; margin: 12px 0; }
 .post-content ol { list-style-type: decimal; }
