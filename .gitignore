@@ -101,6 +101,9 @@ uploads/
 # Claude
 .claude/
 
+# MCP personal config
+.mcp.json
+
 # WorkBuddy / Trae
 .workbuddy/
 
