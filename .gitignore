@@ -82,6 +82,9 @@ node_modules/
 blog-admin/node_modules/
 blog-web/node_modules/
 
+# Vite 运行时临时文件
+blog-web/vite.config.js.timestamp-*.mjs
+
 # Playwright MCP
 .playwright-mcp/
 
