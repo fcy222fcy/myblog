@@ -1531,3 +1531,57 @@ h1, h2, h3, p { text-wrap: pretty; }
 [data-scheme="dark"] .site-logo:hover {
   filter: brightness(1) saturate(1);
 }
+
+/* ===== 正文内嵌水平滚动容器(代码块 / 表格):thumb 跟容器背景,track 透明,避免暗色背景下出现白色 track =====
+   1. .code-block pre 始终深色背景 -> thumb 用浅色(不跟主题)
+   2. .table-wrapper / 非代码块的 pre 用主题变量 thumb
+*/
+.post-content .code-block pre {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+.post-content .code-block pre::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+  background: transparent;
+}
+.post-content .code-block pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+.post-content .code-block pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.post-content pre:not(.code-block pre),
+.post-content .table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+}
+[data-scheme="dark"] .post-content pre:not(.code-block pre),
+[data-scheme="dark"] .post-content .table-wrapper {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+.post-content pre:not(.code-block pre)::-webkit-scrollbar,
+.post-content .table-wrapper::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+  background: transparent;
+}
+.post-content pre:not(.code-block pre)::-webkit-scrollbar-thumb,
+.post-content .table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+}
+[data-scheme="dark"] .post-content pre:not(.code-block pre)::-webkit-scrollbar-thumb,
+[data-scheme="dark"] .post-content .table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+.post-content pre:not(.code-block pre)::-webkit-scrollbar-thumb:hover,
+.post-content .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+[data-scheme="dark"] .post-content pre:not(.code-block pre)::-webkit-scrollbar-thumb:hover,
+[data-scheme="dark"] .post-content .table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}

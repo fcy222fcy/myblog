@@ -1,5 +1,5 @@
 <template>
-  <div class="app" :data-scheme="scheme">
+  <div class="app">
     <MobileHeader ref="mobileHeaderRef" :menu-open="menuOpen" :site-profile="siteProfile" @toggle-menu="toggleMenu" />
     <div class="site-shell" :class="{ 'menu-open': menuOpen }">
       <button
@@ -22,15 +22,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAppStore } from './stores/app'
 import MobileHeader from './components/layout/MobileHeader.vue'
 import AppSidebar from './components/layout/AppSidebar.vue'
 import BackToTop from './components/common/BackToTop.vue'
 import { normalizeSiteProfile } from './utils/siteProfile'
 
-const appStore = useAppStore()
 const route = useRoute()
-const scheme = ref(appStore.scheme)
+// 主题(data-scheme)统一由 app store 写入 <html> 根元素,全局 CSS 变量天然沿继承链生效
 const menuOpen = ref(false)
 const siteProfile = ref(normalizeSiteProfile())
 const mobileHeaderRef = ref(null)
