@@ -132,7 +132,11 @@ func (r *articleRepository) Create(article *entity.Article) error {
 
 // Update 更新文章
 func (r *articleRepository) Update(article *entity.Article) error {
-	return r.db.Save(article).Error
+	// 不保存预加载的 Category/Tags 关联：避免 Save 用预加载的 Category 对象把
+	// category_id 外键同步回旧值（改分类失效），以及重写标签多对多关联
+	// （标签由 UpdateTags 单独处理）。标量字段（含可空的 summary/cover 等）
+	// 仍按全量 Save 语义更新。
+	return r.db.Omit("Category", "Tags").Save(article).Error
 }
 
 // Delete 删除文章（硬删除，级联清理评论、点赞记录、标签关联）
