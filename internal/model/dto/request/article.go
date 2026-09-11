@@ -36,18 +36,20 @@ type UpdateArticleStatusRequest struct {
 }
 
 // UpdateArticleRequest 更新文章请求
+// 部分更新语义：指针/可选类型字段为空表示「本次不改动该字段」，
+// 避免前端未提交某字段时被零值静默覆盖（如置顶、定时发布时间）。
 type UpdateArticleRequest struct {
-	Title          string     `json:"title" binding:"min=1,max=200"`
-	Content        string     `json:"content"`
-	Summary        *string    `json:"summary"`
-	Cover          *string    `json:"cover"`
-	CategoryID     uint       `json:"category_id"`
-	TagIDs         []uint     `json:"tag_ids"`
-	Status         string     `json:"status" binding:"omitempty,oneof=published draft scheduled"`
-	IsTop          bool       `json:"is_top"`
-	Slug           string     `json:"slug" binding:"max=200"`
-	ScheduledAt    *time.Time `json:"scheduled_at"`
-	SEOTitle       *string    `json:"seo_title" binding:"max=200"`
-	SEODescription *string    `json:"seo_description" binding:"max=500"`
-	SEOKeywords    *string    `json:"seo_keywords" binding:"max=300"`
+	Title          string       `json:"title" binding:"min=1,max=200"`
+	Content        string       `json:"content"`
+	Summary        *string      `json:"summary"`
+	Cover          *string      `json:"cover"`
+	CategoryID     uint         `json:"category_id"`
+	TagIDs         []uint       `json:"tag_ids"`
+	Status         string       `json:"status" binding:"omitempty,oneof=published draft scheduled"`
+	IsTop          *bool        `json:"is_top"`
+	Slug           string       `json:"slug" binding:"max=200"`
+	ScheduledAt    OptionalTime `json:"scheduled_at"`
+	SEOTitle       *string      `json:"seo_title" binding:"max=200"`
+	SEODescription *string      `json:"seo_description" binding:"max=500"`
+	SEOKeywords    *string      `json:"seo_keywords" binding:"max=300"`
 }

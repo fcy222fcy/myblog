@@ -206,20 +206,34 @@ func (s *articleService) GetArticleDetail(slug string) (*response.ArticleDetailR
 	return detail, nil
 }
 
-func (s *articleService) invalidateArticleCache(slug string) {
+// articleCacheKeys 计算文章变更需要精确失效的缓存 key。
+// 会为每个非空 slug 生成详情 key（改 slug 时旧、新地址都要清）并去重，
+// 列表类缓存 key 始终包含在内。
+func articleCacheKeys(slugs ...string) []string {
+	keys := []string{
+		"category:list",
+		"tag:list",
+		"article:archives",
+	}
+	seen := make(map[string]bool, len(slugs))
+	for _, slug := range slugs {
+		if slug == "" || seen[slug] {
+			continue
+		}
+		seen[slug] = true
+		keys = append(keys, fmt.Sprintf("article:detail:%s", slug))
+	}
+	return keys
+}
+
+// invalidateArticleCache 失效文章相关缓存。
+// 支持传入多个 slug（如改 slug 时的旧值与新值），空值自动忽略。
+func (s *articleService) invalidateArticleCache(slugs ...string) {
 	if s.redisClient == nil {
 		return
 	}
 	ctx := context.Background()
-	var keys []string
-	if slug != "" {
-		keys = append(keys, fmt.Sprintf("article:detail:%s", slug))
-	}
-	keys = append(keys,
-		"category:list",
-		"tag:list",
-		"article:archives",
-	)
+	keys := articleCacheKeys(slugs...)
 	go func() {
 		defer func() { _ = recover() }()
 		_ = s.redisClient.Del(ctx, keys...)
@@ -424,6 +438,9 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 		return bizerrors.New(bizerrors.CodeArticleNotFound, bizerrors.GetMessage(bizerrors.CodeArticleNotFound))
 	}
 
+	// 记录旧 slug：标题变更会重新生成 slug，旧地址的详情缓存需一并失效
+	oldSlug := article.Slug
+
 	if req.Title != "" {
 		article.Title = req.Title
 	}
@@ -443,7 +460,10 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 	if req.Status != "" {
 		article.Status = req.Status
 	}
-	article.IsTop = req.IsTop
+	// IsTop 用指针：请求体未提交该字段时保持原值，避免被零值静默取消置顶
+	if req.IsTop != nil {
+		article.IsTop = *req.IsTop
+	}
 
 	// Slug：支持自定义，为空时自动根据标题生成
 	if req.Slug != "" {
@@ -452,8 +472,10 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 		article.Slug = generateSlug(req.Title)
 	}
 
-	// 定时发布
-	article.ScheduledAt = req.ScheduledAt
+	// 定时发布：仅在请求显式提交该字段时更新（显式传 null 表示清空定时时间）
+	if req.ScheduledAt.Set {
+		article.ScheduledAt = req.ScheduledAt.Value
+	}
 
 	// SEO 字段
 	if req.SEOTitle != nil {
@@ -490,7 +512,7 @@ func (s *articleService) UpdateArticle(id uint, req *request.UpdateArticleReques
 
 	logger.Infof("文章更新成功, id: %d", id)
 
-	s.invalidateArticleCache(article.Slug)
+	s.invalidateArticleCache(oldSlug, article.Slug)
 	s.refreshArticleSchedule(article)
 
 	return nil
