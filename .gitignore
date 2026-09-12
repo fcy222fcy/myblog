@@ -112,3 +112,6 @@ uploads/
 
 # CSDN migration workspace (contains tokens & raw dumps)
 csdn-migration/
+
+# 本地工作产物（发布脚本、数据库备份、验证截图，不入库）
+outputs/
