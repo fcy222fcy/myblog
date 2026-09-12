@@ -68,22 +68,28 @@
           <div class="article-card-info">
             <div class="article-card-header">
               <h3 class="article-card-title">{{ article.title }}</h3>
-              <div class="status-menu-wrap" @click.stop>
-                <span class="status-badge status-badge-btn" :class="'status-' + article.status" title="点击切换文章状态" @click="toggleStatusMenu(article.id)">
-                  {{ statusLabel(article.status) }}
-                  <svg class="status-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <div class="article-card-badges">
+                <span v-if="article.is_top" class="top-badge" title="已置顶，前台列表顶部优先展示">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="6"></line><polyline points="6 12 12 6 18 12"></polyline><line x1="5" y1="3" x2="19" y2="3"></line></svg>
+                  <span>置顶</span>
                 </span>
-                <div v-if="activeStatusMenuId === article.id" class="status-menu">
-                  <div
-                    v-for="opt in statusOptions"
-                    :key="opt.value"
-                    class="status-menu-item"
-                    :class="{ 'is-current': opt.value === article.status }"
-                    @click="changeArticleStatus(article, opt.value)"
-                  >
-                    <span class="status-dot" :class="'dot-' + opt.value"></span>
-                    <span>{{ opt.label }}</span>
-                    <svg v-if="opt.value === article.status" class="status-check" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <div class="status-menu-wrap" @click.stop>
+                  <span class="status-badge status-badge-btn" :class="'status-' + article.status" title="点击切换文章状态" @click="toggleStatusMenu(article.id)">
+                    {{ statusLabel(article.status) }}
+                    <svg class="status-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </span>
+                  <div v-if="activeStatusMenuId === article.id" class="status-menu">
+                    <div
+                      v-for="opt in statusOptions"
+                      :key="opt.value"
+                      class="status-menu-item"
+                      :class="{ 'is-current': opt.value === article.status }"
+                      @click="changeArticleStatus(article, opt.value)"
+                    >
+                      <span class="status-dot" :class="'dot-' + opt.value"></span>
+                      <span>{{ opt.label }}</span>
+                      <svg v-if="opt.value === article.status" class="status-check" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -519,9 +525,30 @@ const vClickOutside = {
   color: var(--card-text-color-main);
   cursor: pointer;
   margin: 0;
+  min-width: 0;
 }
 .article-card-title:hover {
   color: var(--accent-color);
+}
+
+/* 置顶标识 + 状态徽标同排右对齐 */
+.article-card-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.top-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--tag-border-radius);
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(var(--accent-color-rgb), 0.1);
+  color: var(--accent-color);
+  white-space: nowrap;
 }
 .article-card-summary {
   font-size: 14px;

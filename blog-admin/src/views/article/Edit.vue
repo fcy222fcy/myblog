@@ -132,6 +132,17 @@
             <div class="publish-hint">选择未来时间，文章将在指定时间自动发布；留空则立即发布</div>
           </div>
 
+          <!-- 置顶 -->
+          <div class="publish-field">
+            <div class="publish-switch-row">
+              <div class="publish-switch-text">
+                <label class="publish-label">置顶文章</label>
+                <div class="publish-hint">开启后文章将在前台列表顶部优先展示</div>
+              </div>
+              <el-switch v-model="form.is_top" />
+            </div>
+          </div>
+
           <!-- 摘要 -->
           <div class="publish-field">
             <div class="publish-label-row">
@@ -233,6 +244,7 @@ const form = ref({
   status: 'draft',
   slug: '',
   scheduled_at: null,
+  is_top: false,
   seo_title: '',
   seo_description: '',
   seo_keywords: ''
@@ -424,6 +436,7 @@ const loadData = async () => {
           status: res.data.status || 'draft',
           slug: res.data.slug || '',
           scheduled_at: res.data.scheduled_at ? formatForDateTimeInput(res.data.scheduled_at) : null,
+          is_top: !!res.data.is_top,
           seo_title: res.data.seo_title || '',
           seo_description: res.data.seo_description || '',
           seo_keywords: res.data.seo_keywords || ''
@@ -496,6 +509,7 @@ const restoreLocalDraft = async () => {
       status: draft.status || 'draft',
       slug: draft.slug || '',
       scheduled_at: draft.scheduled_at || null,
+      is_top: draft.is_top || false,
       seo_title: draft.seo_title || '',
       seo_description: draft.seo_description || '',
       seo_keywords: draft.seo_keywords || ''
@@ -652,6 +666,7 @@ const resetForm = async () => {
       status: 'draft',
       slug: '',
       scheduled_at: null,
+      is_top: false,
       seo_title: '',
       seo_description: '',
       seo_keywords: ''
@@ -1099,6 +1114,31 @@ onMounted(() => {
   margin-top: 6px;
   font-size: 12px;
   color: var(--card-text-color-tertiary);
+}
+
+/* 置顶开关（与 Element Plus 默认蓝不同，改用项目强调色） */
+.publish-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.publish-switch-text {
+  min-width: 0;
+}
+
+.publish-switch-text .publish-label {
+  margin-bottom: 4px;
+}
+
+.publish-switch-text .publish-hint {
+  margin-top: 0;
+}
+
+.publish-switch-row :deep(.el-switch.is-checked .el-switch__core) {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 /* SEO 折叠按钮 */
