@@ -128,8 +128,18 @@ func (m *mockArticleRepository) FindByTagID(tagID uint, offset, limit int) ([]*e
 	return nil, 0, nil
 }
 
-func (m *mockArticleRepository) GetArchives() ([]map[string][]*entity.Article, error) {
-	return nil, nil
+func (m *mockArticleRepository) GetArchives() ([]*entity.Article, error) {
+	var result []*entity.Article
+	for _, article := range m.articles {
+		if article.Status == entity.ArticleStatusPublished {
+			result = append(result, &entity.Article{
+				BaseEntity: entity.BaseEntity{ID: article.ID, CreatedAt: article.CreatedAt},
+				Title:      article.Title,
+				Slug:       article.Slug,
+			})
+		}
+	}
+	return result, nil
 }
 
 func (m *mockArticleRepository) GetRecent(limit int) ([]entity.Article, error) {
@@ -397,4 +407,41 @@ func TestArticleService_BatchDelete(t *testing.T) {
 	err := svc.BatchDeleteArticles([]uint{1, 2, 3})
 	assert.NoError(t, err)
 	assert.Len(t, articleRepo.articles, 0)
+}
+
+// TestArticleService_GetArchives 归档应按年份降序、年内按创建时间降序，且只包含已发布文章
+func TestArticleService_GetArchives(t *testing.T) {
+	articleRepo := newMockArticleRepo()
+	svc := NewArticleService(articleRepo, nil, nil, nil)
+
+	seed := []struct {
+		title     string
+		slug      string
+		status    string
+		createdAt time.Time
+	}{
+		{"2025 旧文", "old-2025", entity.ArticleStatusPublished, time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)},
+		{"2026 早", "early-2026", entity.ArticleStatusPublished, time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC)},
+		{"2026 晚", "late-2026", entity.ArticleStatusPublished, time.Date(2026, 9, 10, 0, 0, 0, 0, time.UTC)},
+		{"草稿", "draft", entity.ArticleStatusDraft, time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)},
+	}
+	for _, s := range seed {
+		article := &entity.Article{Title: s.title, Slug: s.slug, Content: "正文", Status: s.status}
+		require.NoError(t, articleRepo.Create(article))
+		article.CreatedAt = s.createdAt
+	}
+
+	result, err := svc.GetArticleArchives()
+	require.NoError(t, err)
+	require.Len(t, result, 2, "应只有 2025、2026 两个年份分组")
+
+	require.Equal(t, 2026, result[0].Year)
+	require.Equal(t, 2025, result[1].Year)
+
+	require.Len(t, result[0].Articles, 2)
+	require.Equal(t, "late-2026", result[0].Articles[0].Slug, "年内应按创建时间降序")
+	require.Equal(t, "early-2026", result[0].Articles[1].Slug)
+
+	require.Len(t, result[1].Articles, 1)
+	require.Equal(t, "old-2025", result[1].Articles[0].Slug)
 }

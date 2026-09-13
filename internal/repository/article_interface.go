@@ -51,8 +51,8 @@ type ArticleRepository interface {
 	// FindByTagID 根据标签ID查找文章
 	FindByTagID(tagID uint, offset, limit int) ([]*entity.Article, int64, error)
 
-	// GetArchives 获取文章归档（按年份分组）
-	GetArchives() ([]map[string][]*entity.Article, error)
+	// GetArchives 获取文章归档（已发布文章，仅返回 id/title/slug/created_at，按创建时间降序）
+	GetArchives() ([]*entity.Article, error)
 
 	// GetRecent 获取最近文章
 	GetRecent(limit int) ([]entity.Article, error)
@@ -63,12 +63,15 @@ type ArticleRepository interface {
 	// UpdateTags 更新文章标签关联
 	UpdateTags(article *entity.Article, tags []entity.Tag) error
 
-	// GetDB 获取数据库实例（用于事务）
+	// ListScheduledAfter 查询定时发布时间晚于 now 的文章
 	ListScheduledAfter(now time.Time) ([]*entity.Article, error)
 
+	// PublishScheduledArticle 发布指定定时文章（仅在到点时生效）
 	PublishScheduledArticle(id uint, now time.Time) (bool, error)
 
+	// PublishDueScheduledArticles 发布所有已到点的定时文章
 	PublishDueScheduledArticles(now time.Time) (int64, error)
 
+	// GetDB 获取数据库实例（用于事务）
 	GetDB() *gorm.DB
 }

@@ -229,7 +229,9 @@ func (r *articleRepository) ListAll(offset, limit int, status, keyword string, c
 		return nil, 0, err
 	}
 
-	err = query.Preload("Category").Preload("Tags").
+	// 后台列表只需要摘要信息，裁掉 longtext 正文（ArticleList 响应不含 content）
+	err = query.Omit("Content").
+		Preload("Category").Preload("Tags").
 		Offset(offset).Limit(limit).
 		Order("created_at DESC").
 		Find(&articles).Error
@@ -261,14 +263,43 @@ func (r *articleRepository) UpdateCommentCount(articleID uint, delta int64) erro
 			gorm.Expr("CASE WHEN comment_count >= ? THEN comment_count - ? ELSE comment_count END", abs, abs)).Error
 }
 
-// BatchDelete 批量删除（逐个处理级联清理）
+// BatchDelete 批量删除（单事务内级联清理，全成功或全回滚）
 func (r *articleRepository) BatchDelete(ids []uint) error {
-	for _, id := range ids {
-		if err := r.Delete(id); err != nil {
+	if len(ids) == 0 {
+		return nil
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 查询这批文章的所有评论 ID
+		var commentIDs []uint
+		if err := tx.Model(&entity.Comment{}).
+			Where("article_id IN ?", ids).
+			Pluck("id", &commentIDs).Error; err != nil {
 			return err
 		}
-	}
-	return nil
+
+		// 删除评论点赞记录
+		if len(commentIDs) > 0 {
+			if err := tx.Where("comment_id IN ?", commentIDs).
+				Delete(&entity.CommentLikeLog{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 删除评论
+		if err := tx.Where("article_id IN ?", ids).
+			Delete(&entity.Comment{}).Error; err != nil {
+			return err
+		}
+
+		// 清理文章-标签关联
+		if err := tx.Where("article_id IN ?", ids).
+			Delete(&entity.ArticleTag{}).Error; err != nil {
+			return err
+		}
+
+		// 删除文章
+		return tx.Where("id IN ?", ids).Delete(&entity.Article{}).Error
+	})
 }
 
 // Count 统计文章数量
@@ -327,28 +358,20 @@ func (r *articleRepository) FindByTagID(tagID uint, offset, limit int) ([]*entit
 	return articles, total, err
 }
 
-// GetArchives 获取文章归档
-func (r *articleRepository) GetArchives() ([]map[string][]*entity.Article, error) {
+// GetArchives 获取文章归档（按创建时间降序返回已发布文章）
+// 归档只需要 id/title/slug/created_at，故显式裁剪列并跳过 Category/Tags 预加载，
+// 避免把 longtext 正文与关联表数据整表读进内存。
+func (r *articleRepository) GetArchives() ([]*entity.Article, error) {
 	var articles []*entity.Article
-	err := r.db.Where("status = ?", entity.ArticleStatusPublished).
+	err := r.db.Model(&entity.Article{}).
+		Select("id", "title", "slug", "created_at").
+		Where("status = ?", entity.ArticleStatusPublished).
 		Order("created_at DESC").
 		Find(&articles).Error
 	if err != nil {
 		return nil, err
 	}
-
-	// 按年份分组
-	yearMap := make(map[string][]*entity.Article)
-	for _, article := range articles {
-		year := article.CreatedAt.Format("2006")
-		yearMap[year] = append(yearMap[year], article)
-	}
-
-	var result []map[string][]*entity.Article
-	for year, arts := range yearMap {
-		result = append(result, map[string][]*entity.Article{year: arts})
-	}
-	return result, nil
+	return articles, nil
 }
 
 // GetRecent 获取最近文章

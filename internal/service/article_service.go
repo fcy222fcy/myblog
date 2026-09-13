@@ -284,8 +284,17 @@ func (s *articleService) unscheduleArticle(id uint) {
 
 // GetArticleArchives 获取文章归档
 func (s *articleService) GetArticleArchives() ([]response.ArchiveResponse, error) {
-	// 获取所有已发布文章，按创建时间降序排序（大上限避免归档遗漏）
-	articles, _, err := s.articleRepo.ListPublished(0, 100000, 0, 0, "")
+	const cacheKey = "article:archives"
+
+	if s.redisClient != nil {
+		var cached []response.ArchiveResponse
+		if err := s.redisClient.GetJSON(context.Background(), cacheKey, &cached); err == nil {
+			return cached, nil
+		}
+	}
+
+	// 归档只需要 id/title/slug/created_at，仓库层已裁剪列（不读 longtext 正文、不预加载关联）
+	articles, err := s.articleRepo.GetArchives()
 	if err != nil {
 		return nil, fmt.Errorf("获取文章归档失败, %w", err)
 	}
@@ -319,6 +328,13 @@ func (s *articleService) GetArticleArchives() ([]response.ArchiveResponse, error
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Year > result[j].Year
 	})
+
+	if s.redisClient != nil {
+		go func() {
+			defer func() { _ = recover() }()
+			_ = s.redisClient.SetJSON(context.Background(), cacheKey, result, 10*time.Minute)
+		}()
+	}
 
 	return result, nil
 }
