@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS articles (
     is_top BOOLEAN DEFAULT FALSE,
     reading_time INT DEFAULT 0,
     INDEX idx_articles_category_id (category_id),
+    INDEX idx_articles_status_top_created (status, is_top, created_at),
     CONSTRAINT fk_articles_category FOREIGN KEY (category_id) REFERENCES categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
