@@ -45,12 +45,6 @@ type ArticleRepository interface {
 	// SumViewCount 统计总浏览量
 	SumViewCount() (int64, error)
 
-	// FindByCategoryID 根据分类ID查找文章
-	FindByCategoryID(categoryID uint, offset, limit int) ([]*entity.Article, int64, error)
-
-	// FindByTagID 根据标签ID查找文章
-	FindByTagID(tagID uint, offset, limit int) ([]*entity.Article, int64, error)
-
 	// GetArchives 获取文章归档（已发布文章，仅返回 id/title/slug/created_at，按创建时间降序）
 	GetArchives() ([]*entity.Article, error)
 

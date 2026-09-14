@@ -320,44 +320,6 @@ func (r *articleRepository) SumViewCount() (int64, error) {
 	return sum, err
 }
 
-// FindByCategoryID 根据分类ID查找文章
-func (r *articleRepository) FindByCategoryID(categoryID uint, offset, limit int) ([]*entity.Article, int64, error) {
-	var articles []*entity.Article
-	var total int64
-
-	query := r.db.Model(&entity.Article{}).Where("category_id = ? AND status = ?", categoryID, entity.ArticleStatusPublished)
-	err := query.Count(&total).Error
-	if err != nil {
-		return nil, 0, err
-	}
-
-	err = query.Preload("Category").Preload("Tags").
-		Offset(offset).Limit(limit).
-		Order("created_at DESC").
-		Find(&articles).Error
-	return articles, total, err
-}
-
-// FindByTagID 根据标签ID查找文章
-func (r *articleRepository) FindByTagID(tagID uint, offset, limit int) ([]*entity.Article, int64, error) {
-	var articles []*entity.Article
-	var total int64
-
-	query := r.db.Model(&entity.Article{}).
-		Joins("JOIN article_tags ON article_tags.article_id = articles.id").
-		Where("article_tags.tag_id = ? AND articles.status = ?", tagID, entity.ArticleStatusPublished)
-	err := query.Count(&total).Error
-	if err != nil {
-		return nil, 0, err
-	}
-
-	err = query.Preload("Category").Preload("Tags").
-		Offset(offset).Limit(limit).
-		Order("articles.created_at DESC").
-		Find(&articles).Error
-	return articles, total, err
-}
-
 // GetArchives 获取文章归档（按创建时间降序返回已发布文章）
 // 归档只需要 id/title/slug/created_at，故显式裁剪列并跳过 Category/Tags 预加载，
 // 避免把 longtext 正文与关联表数据整表读进内存。

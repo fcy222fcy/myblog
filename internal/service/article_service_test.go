@@ -120,14 +120,6 @@ func (m *mockArticleRepository) SumViewCount() (int64, error) {
 	return total, nil
 }
 
-func (m *mockArticleRepository) FindByCategoryID(categoryID uint, offset, limit int) ([]*entity.Article, int64, error) {
-	return nil, 0, nil
-}
-
-func (m *mockArticleRepository) FindByTagID(tagID uint, offset, limit int) ([]*entity.Article, int64, error) {
-	return nil, 0, nil
-}
-
 func (m *mockArticleRepository) GetArchives() ([]*entity.Article, error) {
 	var result []*entity.Article
 	for _, article := range m.articles {
