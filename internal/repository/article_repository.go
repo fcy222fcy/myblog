@@ -182,7 +182,7 @@ func (r *articleRepository) ListPublished(offset, limit int, categoryId, tagId u
 
 	query := r.db.Model(&entity.Article{}).Where("status = ?", entity.ArticleStatusPublished)
 	if keyword != "" {
-		query = query.Where("title LIKE ?", "%"+keyword+"%")
+		query = query.Where("title LIKE ?", "%"+escapeLikePattern(keyword)+"%")
 	}
 	if categoryId > 0 {
 		query = query.Where("category_id = ?", categoryId)
@@ -215,7 +215,7 @@ func (r *articleRepository) ListAll(offset, limit int, status, keyword string, c
 
 	query := r.db.Model(&entity.Article{})
 	if keyword != "" {
-		query = query.Where("title LIKE ?", "%"+keyword+"%")
+		query = query.Where("title LIKE ?", "%"+escapeLikePattern(keyword)+"%")
 	}
 	if status != "" {
 		query = query.Where("status = ?", status)
