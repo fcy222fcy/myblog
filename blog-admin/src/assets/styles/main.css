@@ -205,10 +205,34 @@ button { cursor: pointer; border: none; }
 
 /* ===== 统计卡片 ===== */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 28px; }
-.stat-card { background: var(--card-background); border-radius: var(--card-border-radius); padding: 24px 28px; border: 1px solid var(--card-border); box-shadow: var(--shadow-l1); }
+.stat-card { background: var(--card-background); border-radius: var(--card-border-radius); padding: 24px 28px; border: 1px solid var(--card-border); box-shadow: var(--shadow-l1); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-l2); }
 .stat-label { font-size: 13px; color: var(--card-text-color-tertiary); margin-bottom: 8px; font-weight: 500; }
 .stat-value { font-size: 28px; font-weight: 700; color: var(--card-text-color-main); line-height: 1.2; }
 .stat-change { font-size: 12px; color: var(--success-color); margin-top: 6px; }
+.stat-sub { margin-top: 12px; font-size: 12px; color: var(--card-text-color-tertiary); }
+.stat-sub.is-alert { color: var(--warning-color); font-weight: 500; }
+
+/* ===== 仪表盘：接口失败提示 ===== */
+.dash-alert { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 18px; margin-bottom: 20px; border-radius: var(--radius); background: rgba(var(--danger-color-rgb), 0.08); border: 1px solid rgba(var(--danger-color-rgb), 0.28); font-size: 13px; color: var(--danger-color); }
+.dash-alert-retry { flex-shrink: 0; padding: 5px 14px; border-radius: 6px; border: 1px solid rgba(var(--danger-color-rgb), 0.4); background: transparent; color: var(--danger-color); font-size: 13px; font-family: inherit; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.dash-alert-retry:hover { background: var(--danger-color); color: #fff; }
+
+/* ===== 仪表盘：最近文章 ===== */
+.dash-panel { background: var(--card-background); border: 1px solid var(--card-border); border-radius: var(--card-border-radius); box-shadow: var(--shadow-l1); margin-top: 28px; overflow: hidden; }
+.dash-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 22px; border-bottom: 1px solid var(--card-separator-color); }
+.dash-panel-title { font-size: 15px; font-weight: 600; color: var(--card-text-color-main); }
+.dash-panel-more { font-size: 13px; color: var(--accent-color); cursor: pointer; }
+.dash-panel-more:hover { text-decoration: underline; }
+.recent-list { display: flex; flex-direction: column; }
+.recent-item { display: flex; align-items: center; gap: 16px; padding: 13px 22px; border-bottom: 1px solid var(--card-separator-color); cursor: pointer; transition: background 0.15s ease; }
+.recent-item:last-child { border-bottom: none; }
+.recent-item:hover { background: rgba(var(--accent-color-rgb), 0.04); }
+.recent-main { flex: 1; min-width: 0; }
+.recent-title { font-size: 14px; color: var(--card-text-color-main); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-meta { font-size: 12px; color: var(--card-text-color-tertiary); }
+.recent-arrow { flex-shrink: 0; font-size: 16px; color: var(--card-text-color-tertiary); }
+.dash-panel-empty { padding: 36px 22px; text-align: center; font-size: 13px; color: var(--card-text-color-tertiary); }
 
 /* ===== 操作按钮 ===== */
 .action-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--card-border-radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
@@ -313,7 +337,7 @@ button { cursor: pointer; border: none; }
 
 /* ===== 仪表盘管理卡片 ===== */
 .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 24px; }
-.dashboard-card { display: flex; align-items: center; gap: 18px; padding: 24px; background: var(--card-background); border: 1px solid var(--card-border); border-radius: var(--card-border-radius); box-shadow: var(--shadow-l1); cursor: pointer; }
+.dashboard-card { display: flex; align-items: center; gap: 18px; padding: 24px; background: var(--card-background); border: 1px solid var(--card-border); border-radius: var(--card-border-radius); box-shadow: var(--shadow-l1); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .dashboard-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l2); }
 .dashboard-card-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: rgba(var(--accent-color-rgb), 0.08); border-radius: 12px; font-size: 24px; }
 .dashboard-card-title { font-size: 16px; font-weight: 600; color: var(--card-text-color-main); margin-bottom: 4px; }
@@ -372,6 +396,9 @@ button { cursor: pointer; border: none; }
   .mobile-menu-btn { display: block; }
   .content-area { padding: 16px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .dash-alert { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .recent-item { padding: 12px 16px; }
+  .dash-panel-head { padding: 14px 16px; }
 }
 
 /* ===== Element Plus 样式覆盖 ===== */
