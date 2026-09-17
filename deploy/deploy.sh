@@ -27,6 +27,17 @@ container_ready() {
   [ "$status" = healthy ] || [ "$status" = running ]
 }
 
+# 取响应状态码，连不上时返回空串。
+# --insecure 是有意的：这里只验服务可用性，不让证书续期状态阻塞部署。
+http_status() {
+  curl --insecure --silent --output /dev/null --write-out '%{http_code}' --max-time 10 "$1" 2>/dev/null || true
+}
+
+# 冒烟必须走 443 并显式断言 200：
+#   80 端口对一切请求无条件 return 301 到 https（Host: 127.0.0.1 也一样），
+#   而 curl --fail 只在状态码 >=400 时才失败，301 会被当成成功 —— 那样两个
+#   探针实际只证明了 80 在监听，后端起不来也照样放行。
+#   断言 200 还能顺带拦住 404/502 这类"能连上但服务不对"的情况。
 smoke_check() {
   attempt=1
   while [ "$attempt" -le "$HEALTH_ATTEMPTS" ]; do
@@ -34,11 +45,11 @@ smoke_check() {
       && container_ready gin-blog-redis \
       && container_ready gin-blog-backend \
       && container_ready gin-blog-nginx; then
-      published=$(compose port nginx 80 2>/dev/null | sed -n '1p')
+      published=$(compose port nginx 443 2>/dev/null | sed -n '1p')
       port=${published##*:}
       if [ -n "$port" ] \
-        && curl --fail --silent --show-error --max-time 10 "http://127.0.0.1:$port/" >/dev/null \
-        && curl --fail --silent --show-error --max-time 10 "http://127.0.0.1:$port/api/v1/articles" >/dev/null; then
+        && [ "$(http_status "https://127.0.0.1:$port/")" = '200' ] \
+        && [ "$(http_status "https://127.0.0.1:$port/api/v1/articles")" = '200' ]; then
         return 0
       fi
     fi
