@@ -40,8 +40,15 @@ func (s *tagService) GetTagList() ([]response.TagResponse, error) {
 	}
 
 	var result []response.TagResponse
+	// 同 GetCategoryList：count 为 0 无法区分「真的没有文章」与「查询失败」，
+	// 出错时必须跳过缓存写入，避免错误的 0 被固化进 tag:list 一个缓存周期（30 分钟）。
+	countsTrustworthy := true
 	for _, tag := range tags {
-		count, _ := s.tagRepo.GetTagArticleCount(tag.ID)
+		count, err := s.tagRepo.GetTagArticleCount(tag.ID)
+		if err != nil {
+			logger.Warnf("获取标签文章数失败, tagID: %d, error: %v", tag.ID, err)
+			countsTrustworthy = false
+		}
 		result = append(result, response.TagResponse{
 			ID:           tag.ID,
 			Name:         tag.Name,
@@ -51,7 +58,7 @@ func (s *tagService) GetTagList() ([]response.TagResponse, error) {
 		})
 	}
 
-	if s.redisClient != nil {
+	if s.redisClient != nil && countsTrustworthy {
 		go s.redisClient.SetJSON(context.Background(), "tag:list", result, 30*time.Minute)
 	}
 

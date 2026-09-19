@@ -40,8 +40,17 @@ func (s *categoryService) GetCategoryList() ([]response.CategoryResponse, error)
 	}
 
 	var result []response.CategoryResponse
+	// count 取到 0 既可能是真的没有文章，也可能是查询失败，二者无法从返回值区分。
+	// 所以任何一个计数查询出错都要记下来，并且**跳过缓存写入** —— 否则一次查询抖动
+	// 会把错误的 0 固化进 category:list 整整一个缓存周期（30 分钟），后台会长时间
+	// 显示「0 篇文章」且没有日志可查。不写缓存时，下次请求会重新计算，可自愈。
+	countsTrustworthy := true
 	for _, cat := range categories {
-		count, _ := s.categoryRepo.GetCategoryArticleCount(cat.ID)
+		count, err := s.categoryRepo.GetCategoryArticleCount(cat.ID)
+		if err != nil {
+			logger.Warnf("获取分类文章数失败, categoryID: %d, error: %v", cat.ID, err)
+			countsTrustworthy = false
+		}
 		result = append(result, response.CategoryResponse{
 			ID:           cat.ID,
 			Name:         cat.Name,
@@ -53,7 +62,7 @@ func (s *categoryService) GetCategoryList() ([]response.CategoryResponse, error)
 		})
 	}
 
-	if s.redisClient != nil {
+	if s.redisClient != nil && countsTrustworthy {
 		go s.redisClient.SetJSON(context.Background(), "category:list", result, 30*time.Minute)
 	}
 
@@ -70,7 +79,12 @@ func (s *categoryService) GetCategoryByID(id uint) (*response.CategoryResponse, 
 		return nil, bizerrors.New(bizerrors.CodeCategoryNotFound, bizerrors.GetMessage(bizerrors.CodeCategoryNotFound))
 	}
 
-	count, _ := s.categoryRepo.GetCategoryArticleCount(cat.ID)
+	// 与 GetCategoryList 同理：这里虽然没有缓存可污染，但静默返回 0 同样会给出错误计数，
+	// 因此按本文件其余 DB 调用的风格直接上抛错误。
+	count, err := s.categoryRepo.GetCategoryArticleCount(cat.ID)
+	if err != nil {
+		return nil, fmt.Errorf("获取分类文章数失败, categoryID: %d, %w", cat.ID, err)
+	}
 	return &response.CategoryResponse{
 		ID:           cat.ID,
 		Name:         cat.Name,
