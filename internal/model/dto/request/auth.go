@@ -20,14 +20,6 @@ func (r *LoginRequest) ValidateLogin() bool {
 	return hasEmail || hasUsername
 }
 
-// RegisterRequest 注册请求：邮箱必填
-type RegisterRequest struct {
-	Username string `json:"username" binding:"omitempty,min=3,max=50"`
-	Password string `json:"password" binding:"required,min=6,max=50"`
-	Nickname string `json:"nickname" binding:"required,max=50"`
-	Email    string `json:"email" binding:"required,email"`
-}
-
 // UpdateUserRequest 更新用户请求
 type UpdateUserRequest struct {
 	Nickname string `json:"nickname" binding:"max=50"`

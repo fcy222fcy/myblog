@@ -49,29 +49,6 @@ func (c *Controller) Login(ctx *gin.Context) {
 	response.Success(ctx, result)
 }
 
-// Register 用户注册
-func (c *Controller) Register(ctx *gin.Context) {
-	var req request.RegisterRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, "参数错误")
-		return
-	}
-
-	err := c.authSvc.Register(&req)
-	if err != nil {
-		if bizerrors.IsBizError(err) {
-			logger.Warn("业务错误", zap.Error(err))
-			response.BizError(ctx, err)
-		} else {
-			logger.Error("注册失败", zap.Error(err))
-			response.ServerError(ctx, "服务器内部错误")
-		}
-		return
-	}
-
-	response.Success(ctx, nil)
-}
-
 // ChangePassword 修改密码
 func (c *Controller) ChangePassword(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
