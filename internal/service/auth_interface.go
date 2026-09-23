@@ -10,6 +10,9 @@ type AuthService interface {
 	// Login 用户登录
 	Login(req *request.LoginRequest) (*response.LoginResponse, error)
 
+	// Register 用户注册
+	Register(req *request.RegisterRequest) error
+
 	// GetProfile 获取用户信息
 	GetProfile(userID uint) (*response.UserProfileResponse, error)
 

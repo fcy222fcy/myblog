@@ -12,6 +12,7 @@ func RegisterRoutes(rg *gin.RouterGroup, controller *Controller, jwtInstance *bl
 	auth := rg.Group("/auth")
 	{
 		auth.POST("/login", controller.Login)
+		auth.POST("/register", controller.Register)
 	}
 
 	// 需要登录的路由
