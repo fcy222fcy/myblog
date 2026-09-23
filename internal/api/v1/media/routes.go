@@ -8,10 +8,11 @@ import (
 )
 
 // RegisterRoutes 注册媒体模块路由
-func RegisterRoutes(rg *gin.RouterGroup, controller *Controller, jwtInstance *blogjwt.JWT) {
+func RegisterRoutes(rg *gin.RouterGroup, controller *Controller, jwtInstance *blogjwt.JWT, bloggerUserID uint) {
 	// 需要登录的路由
 	protected := rg.Group("")
 	protected.Use(middleware.Auth(jwtInstance))
+	protected.Use(middleware.RequireBlogger(bloggerUserID))
 	{
 		media := protected.Group("/media")
 		{

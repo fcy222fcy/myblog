@@ -144,16 +144,18 @@ func (r *Router) Setup() *gin.Engine {
 	apiV1.Use(middleware.Audit(r.auditLogSvc))
 
 	// 注册各模块路由（传入预创建的 JWT 实例）
+	// 后台模块额外传入博主 ID，用于 RequireBlogger 身份校验；
+	// auth 与 user 是用户自助接口（改密码、个人资料），不能加博主校验。
 	auth.RegisterRoutes(apiV1, r.authController, r.jwtInstance)
-	article.RegisterRoutes(apiV1, r.articleController, r.jwtInstance)
-	category.RegisterRoutes(apiV1, r.categoryController, r.jwtInstance)
-	tag.RegisterRoutes(apiV1, r.tagController, r.jwtInstance)
-	comment.RegisterRoutes(apiV1, r.commentController, r.jwtInstance)
-	daily_question.RegisterRoutes(apiV1, r.dailyQuestionController, r.jwtInstance)
+	article.RegisterRoutes(apiV1, r.articleController, r.jwtInstance, r.bloggerUserID())
+	category.RegisterRoutes(apiV1, r.categoryController, r.jwtInstance, r.bloggerUserID())
+	tag.RegisterRoutes(apiV1, r.tagController, r.jwtInstance, r.bloggerUserID())
+	comment.RegisterRoutes(apiV1, r.commentController, r.jwtInstance, r.bloggerUserID())
+	daily_question.RegisterRoutes(apiV1, r.dailyQuestionController, r.jwtInstance, r.bloggerUserID())
 	content_view.RegisterRoutes(apiV1, r.contentViewController)
 	user.RegisterRoutes(apiV1, r.userController, r.jwtInstance)
-	media.RegisterRoutes(apiV1, r.mediaController, r.jwtInstance)
-	audit_log.RegisterRoutes(apiV1, r.auditLogController, r.jwtInstance)
+	media.RegisterRoutes(apiV1, r.mediaController, r.jwtInstance, r.bloggerUserID())
+	audit_log.RegisterRoutes(apiV1, r.auditLogController, r.jwtInstance, r.bloggerUserID())
 	rss.RegisterRoutes(apiV1, r.rssHandler)
 	sitemap.RegisterRoutes(apiV1, r.sitemapHandler)
 
@@ -169,11 +171,22 @@ func (r *Router) Setup() *gin.Engine {
 	return r.engine
 }
 
+// bloggerUserID 返回博主账号 ID，供 RequireBlogger 中间件做身份校验。
+// 未配置时返回 0，中间件会据此拒绝全部后台访问——不能放行，否则未登录请求
+// 的 user_id 同样是 0，会把游客当成博主放进来。
+func (r *Router) bloggerUserID() uint {
+	if r.config == nil {
+		return 0
+	}
+	return r.config.Blogger.UserID
+}
+
 // registerDashboardRoutes 注册仪表盘路由
 func (r *Router) registerDashboardRoutes(rg *gin.RouterGroup) {
 	// 需要登录的路由
 	protected := rg.Group("")
 	protected.Use(middleware.Auth(r.jwtInstance))
+	protected.Use(middleware.RequireBlogger(r.bloggerUserID()))
 	{
 		dashboard := protected.Group("/admin/dashboard")
 		{
@@ -194,6 +207,7 @@ func (r *Router) registerAboutPageRoutes(rg *gin.RouterGroup) {
 	// 需要登录的路由
 	protected := rg.Group("")
 	protected.Use(middleware.Auth(r.jwtInstance))
+	protected.Use(middleware.RequireBlogger(r.bloggerUserID()))
 	{
 		protected.PUT("/admin/about", r.aboutPageController.UpdateAboutPage)
 	}
